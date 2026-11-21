@@ -1147,7 +1147,7 @@
           <div class="figure-delta figure-delta--warning" id="kpi-a-vencer-sub">—</div>
         </article>
         <article class="figure-card figure-card--alert">
-          <div class="figure-label">Atos Vencidos (Passivo)</div>
+          <div class="figure-label">Cursos com Atos Vencidos</div>
           <div class="figure-value" id="kpi-vencidos">0</div>
           <div class="figure-delta figure-delta--error" id="kpi-vencidos-sub">—</div>
         </article>
@@ -2257,7 +2257,7 @@
       if (kpiAVencerSub) kpiAVencerSub.textContent = "Vencimento em até " + appState.horizonDays + " dias · Requer abertura no CEE-MT";
 
       if (kpiVencidos) kpiVencidos.textContent = String(totalVencidos);
-      if (kpiVencidosSub) kpiVencidosSub.textContent = vencDescobertos + " sem protocolo · " + vencCobertos + " em renovação";
+      if (kpiVencidosSub) kpiVencidosSub.textContent = vencDescobertos + " Expirados perante o CEE-MT· " + vencCobertos + " Requer regularização institucional";
 
       const totalPendencias = totalVencidos + aVencer;
       const pendenciasCobertas = vencCobertos + aVencerCobertos;
