@@ -2216,7 +2216,7 @@
       }
     }
 
- function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProcessos) {
+    function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProcessos) {
       const kpiUnidades = document.getElementById("kpi-unidades");
       const kpiUnidadesSub = document.getElementById("kpi-unidades-sub");
       const kpiTotalCursos = document.getElementById("kpi-total-cursos");
@@ -2228,17 +2228,12 @@
       const kpiCobertura = document.getElementById("kpi-cobertura");
       const kpiCoberturaSub = document.getElementById("kpi-cobertura-sub");
 
-      if (appState.selectedEtec !== "TODAS") {
-        const selUnit = allSummaries.find(s => s.cod === Number(appState.selectedEtec));
-        if (kpiUnidades) kpiUnidades.textContent = "1 / " + allSummaries.length;
-        if (kpiUnidadesSub) kpiUnidadesSub.textContent = selUnit ? selUnit.nome : "Unidade Selecionada";
-      } else {
-        const critCount = filteredSummaries.filter(s => s.risk === "VERMELHO").length;
-        const attCount = filteredSummaries.filter(s => s.risk === "AMARELO").length;
-        const regCount = filteredSummaries.filter(s => s.risk === "VERDE").length;
-        if (kpiUnidades) kpiUnidades.textContent = filteredSummaries.length + " / " + allSummaries.length;
-        if (kpiUnidadesSub) kpiUnidadesSub.textContent = critCount + " Críticas · " + attCount + " Atenção · " + regCount + " Regulares";
-      }
+      const critCount = filteredSummaries.filter(s => s.risk === "VERMELHO").length;
+      const attCount = filteredSummaries.filter(s => s.risk === "AMARELO").length;
+      const regCount = filteredSummaries.filter(s => s.risk === "VERDE").length;
+
+      if (kpiUnidades) kpiUnidades.textContent = filteredSummaries.length + " / " + allSummaries.length;
+      if (kpiUnidadesSub) kpiUnidadesSub.textContent = critCount + " Críticas · " + attCount + " Atenção · " + regCount + " Regulares";
 
       const totalCursos = filteredAtos.length;
       const vigentes = filteredAtos.filter(a => a.category === "VIGENTE").length;
@@ -2257,7 +2252,8 @@
       if (kpiAVencerSub) kpiAVencerSub.textContent = "Vencimento em até " + appState.horizonDays + " dias · Requer abertura no CEE-MT";
 
       if (kpiVencidos) kpiVencidos.textContent = String(totalVencidos);
-      if (kpiVencidosSub) kpiVencidosSub.textContent = vencDescobertos + " Expirados perante o CEE-MT· " + vencCobertos + " Requer regularização institucional";
+      const vencidosPct = totalCursos > 0 ? Math.round((totalVencidos / totalCursos) * 100) : 0;
+      if (kpiVencidosSub) kpiVencidosSub.textContent = vencidosPct + "% da rede monitorada · Requer regularização junto ao CEE-MT";
 
       const totalPendencias = totalVencidos + aVencer;
       const pendenciasCobertas = vencCobertos + aVencerCobertos;
@@ -2267,6 +2263,7 @@
       if (kpiCobertura) kpiCobertura.textContent = coberturaPct + "%";
       if (kpiCoberturaSub) kpiCoberturaSub.textContent = activeProcsCount + " processos ativos no SIPE";
     }
+
 
     function renderSelectedUnitPill(summaries) {
       const el = document.getElementById(`selected-etec-indicator`);
