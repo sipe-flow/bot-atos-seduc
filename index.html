@@ -1137,12 +1137,12 @@
           <div class="figure-delta" id="kpi-unidades-sub">—</div>
         </article>
         <article class="figure-card figure-card--positive">
-          <div class="figure-label">Cursos Técnicos Únicos</div>
+          <div class="figure-label">Cursos Técnicos Monitorados</div>
           <div class="figure-value" id="kpi-total-cursos">0</div>
           <div class="figure-delta figure-delta--positive" id="kpi-regulares-sub">—</div>
         </article>
         <article class="figure-card">
-          <div class="figure-label">Alertas Preventivos (A Vencer)</div>
+          <div class="figure-label">Cursos a Vencer (Até 1 Ano)</div>
           <div class="figure-value" id="kpi-a-vencer">0</div>
           <div class="figure-delta figure-delta--warning" id="kpi-a-vencer-sub">—</div>
         </article>
@@ -2249,7 +2249,7 @@
       if (kpiRegularesSub) kpiRegularesSub.textContent = `${vigentes} vigentes plenos (${regularPct}% regulares)`;
 
       if (kpiAVencer) kpiAVencer.textContent = String(aVencer);
-      if (kpiAVencerSub) kpiAVencerSub.textContent = `Horizonte ≤ ${appState.horizonDays}d (${aVencerCobertos} já protocolados)`;
+      if (kpiAVencerSub) kpiAVencerSub.textContent = \`Vencimento em até ${appState.horizonDays} dias · Requer abertura no CEE-MT\`;
 
       if (kpiVencidos) kpiVencidos.textContent = String(totalVencidos);
       if (kpiVencidosSub) kpiVencidosSub.textContent = `${vencDescobertos} sem protocolo · ${vencCobertos} em renovação`;
