@@ -1198,11 +1198,11 @@
 
           <div class="map-legend">
             <div class="legend-items">
-              <span class="legend-item"><span class="dot-swatch dot-vermelho"></span> Risco Crítico (Vencido sem protocolo)</span>
-              <span class="legend-item"><span class="dot-swatch dot-amarelo"></span> Atenção (A vencer ou em renovação)</span>
-              <span class="legend-item"><span class="dot-swatch dot-verde"></span> Regular (Conformidade plena)</span>
+              <span class="legend-item"><span class="dot-swatch dot-vermelho"></span> Pendência Crítica (Atos Vencidos)</span>
+              <span class="legend-item"><span class="dot-swatch dot-amarelo"></span> Alerta Preventivo (Vencimento em até 1 Ano)</span>
+              <span class="legend-item"><span class="dot-swatch dot-verde"></span> Regularidade Plena (Atos Vigentes)</span>
             </div>
-            <span class="panel-meta">Geometria: Limites Estaduais IBGE (domínio público)</span>
+            <span class="panel-meta">Dica: Clique no ponto do município para inspecionar os cursos e processos da unidade.</span>
           </div>
         </div>
 
@@ -1685,7 +1685,7 @@
         if (novosAtos.length > 0) {
           console.log('✅ SIPE Flow: ' + novosAtos.length + ' atos carregados com sucesso do Google Sheets!');
           appState.atos = novosAtos;
-          appState.customSourceLabel = 'PLANILHA ONLINE GOOGLE (' + novosAtos.length + ' CURSOS)';
+          appState.customSourceLabel = 'BASE INTEGRADA DE DADOS (' + novosAtos.length + ' CURSOS)';
           return true;
         }
       } catch (err) {
@@ -2394,13 +2394,16 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
         .attr(`stroke-width`, 2);
 
       // City labels with smart offsets for Cuiabá/Várzea Grande & Campo Verde/Primavera/Poxoréu
-      const labelOffsets = {
-        3905: { dx: 11, dy: -4, anchor: `start` },   // Cuiabá
-        5107: { dx: -11, dy: 12, anchor: `end` },    // Várzea Grande
-        2392: { dx: -10, dy: -7, anchor: `end` },    // Campo Verde
-        5003: { dx: 10, dy: -6, anchor: `start` },   // Primavera
-        1621: { dx: 10, dy: 12, anchor: `start` },   // Poxoréu
-        867:  { dx: 11, dy: 4, anchor: `start` }     // Rondonópolis
+     const labelOffsets = {
+        3905: { dx: 14, dy: -8, anchor: "start" },   // Cuiabá: empurrado para a direita e para cima
+        5107: { dx: -14, dy: 16, anchor: "end" },    // Várzea Grande: empurrado para a esquerda e para baixo
+        2392: { dx: -12, dy: -10, anchor: "end" },   // Campo Verde: recuado à esquerda e para cima
+        5003: { dx: 12, dy: -10, anchor: "start" },  // Primavera do Leste: à direita e para cima
+        1621: { dx: 12, dy: 16, anchor: "start" },   // Poxoréu: à direita e para baixo
+        867:  { dx: 14, dy: 6, anchor: "start" },    // Rondonópolis: à direita alinhado
+        657:  { dx: -12, dy: 4, anchor: "end" },     // Tangará da Serra: à esquerda do ponto
+        4858: { dx: -12, dy: 4, anchor: "end" },     // Cáceres: à esquerda do ponto
+        5008: { dx: 12, dy: 14, anchor: "start" }    // Matupá: abaixo de Alta Floresta
       };
 
       if (appState.mapLayers.labels) {
