@@ -1545,6 +1545,8 @@
     // INTEGRAÇÃO COM A PLANILHA OFICIAL GOOGLE (TEMPO REAL)
     // =========================================================================
     const URL_PLANILHA_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS9-yb5ewD5LobCyj82S4yLTtUINPWk9bx8HngF4flfJ3xT4tQhrkRm4_wM4M8EGFhQkedrfLLqMvI3/pub?gid=0&single=true&output=csv";
+    const URL_PLANILHA_PROCESSOS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS9-yb5ewD5LobCyj82S4yLTtUINPWk9bx8HngF4flfJ3xT4tQhrkRm4_wM4M8EGFhQkedrfLLqMvI3/pub?gid=SEU_GID_PROCESSOS&single=true&output=csv";
+
 
     function parseCSVLine(text) {
       const result = [];
@@ -1586,108 +1588,243 @@
       return limpo.replace(/["']/g, '').trim().toUpperCase();
     }
 
-    async function carregarDadosPlanilhaOnline() {
-      if (!URL_PLANILHA_CSV || URL_PLANILHA_CSV.trim() === '') return false;
+   function isEducacaoProfissionalProcesso(tipoAto) {
+  if (!tipoAto) return false;
+  const t = normalizeStr(tipoAto);
 
-      try {
-        console.log('⏳ SIPE Flow: Buscando atos da planilha Google online...');
-        const resp = await fetch(URL_PLANILHA_CSV, { cache: 'no-store' });
-        if (!resp.ok) {
-          console.warn('⚠️ Google Sheets retornou status:', resp.status);
-          return false;
-        }
+  // 1. Bloqueio explícito de Educação Básica pura (Fundamental / Infantil / Médio Regular)
+  const isBasicaPura = (t.includes('FUNDAMENTAL') || t.includes('INFANTIL') || t.includes('MEDIO REGULAR')) && 
+                       !t.includes('PROFISSIONAL') && !t.includes('FORA DE SEDE') && !t.includes('SABERES');
+  if (isBasicaPura) return false;
+
+  // 2. REGRA 1: Ter o termo "PROFISSIONAL" no assunto (Cursos Técnicos, Habilitações, Especializações)
+  if (t.includes('PROFISSIONAL')) return true;
+
+  // 3. REGRA 2: Oferta Fora de Sede (Articulado Concomitante e Subsequente)
+  if (t.includes('FORA DE SEDE') && (t.includes('CONCOMITANTE') || t.includes('SUBSEQUENTE') || t.includes('ARTICULADO'))) return true;
+  if (t.includes('AUTORIZACAO CURSO FORA DE SEDE')) return true;
+
+  // 4. REGRA 3: Autorização para Turmas Especiais (turma única/exceção)
+  if (t.includes('TURMAS ESPECIAIS') || t.includes('TURMA ESPECIAL')) return true;
+
+  // 5. REGRA 4: Credenciamento Unidade Certificadora (Reconhecimento de Saberes e de Competências)
+  if (t.includes('RECONHECIMENTO DE SABERES') || t.includes('UNIDADE CERTIFICADORA') || t.includes('SABERES E DE COMPETENCIAS')) return true;
+
+  return false;
+}
+    
+async function carregarDadosPlanilhaOnline() {
+  let carregouAtos = false;
+  let carregouProcessos = false;
+
+  // =========================================================================
+  // PARTE A: CARREGAMENTO DOS ATOS (377 CURSOS)
+  // =========================================================================
+  if (URL_PLANILHA_CSV && URL_PLANILHA_CSV.trim() !== '') {
+    try {
+      console.log('⏳ SIPE Flow: Buscando atos da planilha Google online...');
+      const resp = await fetch(URL_PLANILHA_CSV, { cache: 'no-store' });
+      if (resp.ok) {
         const csvText = await resp.text();
         const rawLines = csvText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-        if (rawLines.length < 2) return false;
+        if (rawLines.length >= 2) {
+          const header = parseCSVLine(rawLines[0]).map(h => normalizeStr(h));
+          let idxCod = header.findIndex(h => h.includes('CODIGO') || h.includes('COD'));
+          let idxEscola = header.findIndex(h => h.includes('NOME DA INSTITUICAO') || h.includes('ESCOLA'));
+          let idxMun = header.findIndex(h => h.includes('MUNICIPIO'));
+          let idxCurso = header.findIndex(h => h === 'CURSO' || (h.includes('CURSO') && !h.includes('MUNICIPIO') && !h.includes('CIDADE')));
+          let idxAto = header.findIndex(h => h.includes('ATO'));
+          let idxSit = header.findIndex(h => h.includes('SITUACAO'));
+          let idxModelo = header.findIndex(h => h.includes('MODELO'));
+          let idxDoc = header.findIndex(h => h.includes('DOCUMENTO') || h.includes('DOC') || h.includes('NUMERO'));
+          let idxVal = header.findIndex(h => h.includes('VALIDADE'));
+          let idxPub = header.findIndex(h => h.includes('PUBLICACAO'));
+          let idxPag = header.findIndex(h => h.includes('PAG'));
 
-        const header = parseCSVLine(rawLines[0]).map(h => normalizeStr(h));
-        
-        let idxCod = header.findIndex(h => h.includes('CODIGO') || h.includes('COD'));
-        let idxEscola = header.findIndex(h => h.includes('NOME DA INSTITUICAO') || h.includes('ESCOLA'));
-        let idxMun = header.findIndex(h => h.includes('MUNICIPIO'));
-        let idxCurso = header.findIndex(h => h === 'CURSO' || (h.includes('CURSO') && !h.includes('MUNICIPIO') && !h.includes('CIDADE')));
-        let idxAto = header.findIndex(h => h.includes('ATO'));
-        let idxSit = header.findIndex(h => h.includes('SITUACAO'));
-        let idxModelo = header.findIndex(h => h.includes('MODELO'));
-        let idxDoc = header.findIndex(h => h.includes('DOCUMENTO') || h.includes('DOC') || h.includes('NUMERO'));
-        let idxVal = header.findIndex(h => h.includes('VALIDADE'));
-        let idxPub = header.findIndex(h => h.includes('PUBLICACAO'));
-        let idxPag = header.findIndex(h => h.includes('PAG'));
+          if (idxCod === -1) idxCod = 0;
+          if (idxEscola === -1) idxEscola = 1;
+          if (idxMun === -1) idxMun = 2;
+          if (idxCurso === -1) idxCurso = 3;
+          if (idxAto === -1) idxAto = 4;
+          if (idxSit === -1) idxSit = 5;
+          if (idxModelo === -1) idxModelo = 6;
+          if (idxDoc === -1) idxDoc = 7;
+          if (idxVal === -1) idxVal = 8;
+          if (idxPub === -1) idxPub = 9;
+          if (idxPag === -1) idxPag = 10;
 
-        if (idxCod === -1) idxCod = 0;
-        if (idxEscola === -1) idxEscola = 1;
-        if (idxMun === -1) idxMun = 2;
-        if (idxCurso === -1) idxCurso = 3;
-        if (idxAto === -1) idxAto = 4;
-        if (idxSit === -1) idxSit = 5;
-        if (idxModelo === -1) idxModelo = 6;
-        if (idxDoc === -1) idxDoc = 7;
-        if (idxVal === -1) idxVal = 8;
-        if (idxPub === -1) idxPub = 9;
-        if (idxPag === -1) idxPag = 10;
+          const novosAtos = [];
+          for (let i = 1; i < rawLines.length; i++) {
+            const col = parseCSVLine(rawLines[i]);
+            if (col.length < 2) continue;
+            const cursoBruto = col[idxCurso] || '';
+            if (!cursoBruto) continue;
 
-        const novosAtos = [];
+            let cod = parseInt(col[idxCod], 10) || 0;
+            let mun = (col[idxMun] || '').replace(/["']/g, '').trim().toUpperCase();
+            let escola = (col[idxEscola] || '').replace(/["']/g, '').trim();
 
-        for (let i = 1; i < rawLines.length; i++) {
-          const col = parseCSVLine(rawLines[i]);
-          if (col.length < 2) continue;
-
-          const cursoBruto = col[idxCurso] || '';
-          if (!cursoBruto) continue;
-
-          let cod = parseInt(col[idxCod], 10) || 0;
-          let mun = (col[idxMun] || '').replace(/["']/g, '').trim().toUpperCase();
-          let escola = (col[idxEscola] || '').replace(/["']/g, '').trim();
-
-          if (typeof ETECS_MASTER !== 'undefined') {
-            let etec = null;
-            if (cod > 0) {
-              etec = ETECS_MASTER.find(e => e.cod === cod);
+            if (typeof ETECS_MASTER !== 'undefined') {
+              let etec = null;
+              if (cod > 0) etec = ETECS_MASTER.find(e => e.cod === cod);
+              if (!etec && mun) {
+                const mNorm = normalizeStr(mun);
+                etec = ETECS_MASTER.find(e => normalizeStr(e.key) === mNorm || normalizeStr(e.cidade) === mNorm || mNorm.includes(normalizeStr(e.key)));
+              }
+              if (!etec && escola) {
+                const eNorm = normalizeStr(escola);
+                etec = ETECS_MASTER.find(e => eNorm.includes(normalizeStr(e.key)));
+              }
+              if (etec) {
+                cod = etec.cod;
+                if (!mun) mun = etec.cidade;
+                if (!escola) escola = etec.nomeCompleto;
+              }
             }
-            if (!etec && mun) {
-              const mNorm = normalizeStr(mun);
-              etec = ETECS_MASTER.find(e => normalizeStr(e.key) === mNorm || normalizeStr(e.cidade) === mNorm || mNorm.includes(normalizeStr(e.key)));
-            }
-            if (!etec && escola) {
-              const eNorm = normalizeStr(escola);
-              etec = ETECS_MASTER.find(e => eNorm.includes(normalizeStr(e.key)));
-            }
-            if (etec) {
-              cod = etec.cod;
-              if (!mun) mun = etec.cidade;
-              if (!escola) escola = etec.nomeCompleto;
-            }
+            if (cod === 0) cod = 5002;
+
+            novosAtos.push({
+              cod: cod,
+              escola: escola || ('ESCOLA TÉCNICA ESTADUAL (' + mun + ')'),
+              municipio: mun || 'MATO GROSSO',
+              curso: limparNomeCurso(cursoBruto),
+              ato: (col[idxAto] || 'AUTORIZAÇÃO').replace(/["']/g, '').trim(),
+              situacao: (col[idxSit] || 'REGULAR').replace(/["']/g, '').trim(),
+              modelo: (col[idxModelo] || 'Portaria / Resolução').replace(/["']/g, '').trim(),
+              doc: (col[idxDoc] || 'Ato CEE/MT').replace(/["']/g, '').trim(),
+              validade: (col[idxVal] || '').replace(/["']/g, '').trim(),
+              pub: (col[idxPub] || '—').replace(/["']/g, '').trim(),
+              pag: (col[idxPag] || '—').replace(/["']/g, '').trim()
+            });
           }
 
-          if (cod === 0) cod = 5002;
-
-          novosAtos.push({
-            cod: cod,
-            escola: escola || ('ESCOLA TÉCNICA ESTADUAL (' + mun + ')'),
-            municipio: mun || 'MATO GROSSO',
-            curso: limparNomeCurso(cursoBruto),
-            ato: (col[idxAto] || 'AUTORIZAÇÃO').replace(/["']/g, '').trim(),
-            situacao: (col[idxSit] || 'REGULAR').replace(/["']/g, '').trim(),
-            modelo: (col[idxModelo] || 'Portaria / Resolução').replace(/["']/g, '').trim(),
-            doc: (col[idxDoc] || 'Ato CEE/MT').replace(/["']/g, '').trim(),
-            validade: (col[idxVal] || '').replace(/["']/g, '').trim(),
-            pub: (col[idxPub] || '—').replace(/["']/g, '').trim(),
-            pag: (col[idxPag] || '—').replace(/["']/g, '').trim()
-          });
+          if (novosAtos.length > 0) {
+            console.log('✅ SIPE Flow: ' + novosAtos.length + ' atos regulatórios carregados do Google Sheets!');
+            appState.atos = novosAtos;
+            carregouAtos = true;
+          }
         }
-
-        if (novosAtos.length > 0) {
-          console.log('✅ SIPE Flow: ' + novosAtos.length + ' atos carregados com sucesso do Google Sheets!');
-          appState.atos = novosAtos;
-          appState.customSourceLabel = 'BASE INTEGRADA DE DADOS (' + novosAtos.length + ' CURSOS)';
-          return true;
-        }
-      } catch (err) {
-        console.error('❌ Erro na sincronização online com Google Sheets:', err);
       }
-      return false;
+    } catch (err) {
+      console.error('❌ Erro ao buscar atos online:', err);
     }
+  }
 
+   // =========================================================================
+  // PARTE B: CARREGAMENTO DOS PROCESSOS (FILTRADO POR EDUCAÇÃO PROFISSIONAL ATIVA)
+  // =========================================================================
+  if (URL_PLANILHA_PROCESSOS_CSV && URL_PLANILHA_PROCESSOS_CSV.trim() !== '' && !URL_PLANILHA_PROCESSOS_CSV.includes('SEU_LINK')) {
+    try {
+      console.log('⏳ SIPE Flow: Buscando processos do SIPE da planilha Google online...');
+      const respP = await fetch(URL_PLANILHA_PROCESSOS_CSV, { cache: 'no-store' });
+      if (respP.ok) {
+        const csvP = await respP.text();
+        const rawLinesP = csvP.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (rawLinesP.length >= 2) {
+          const headerP = parseCSVLine(rawLinesP[0]).map(h => normalizeStr(h));
+          
+          let idxInst = headerP.findIndex(h => h.includes('INSTITUICAO') || h.includes('ESCOLA') || h.includes('UNIDADE'));
+          let idxAno = headerP.findIndex(h => h.includes('ANO'));
+          let idxProc = headerP.findIndex(h => h.includes('PROCESSO') || h.includes('NUMERO') || h.includes('PROTOCOLO'));
+          let idxTipo = headerP.findIndex(h => h.includes('TIPO') || h.includes('ATO') || h.includes('ASSUNTO') || h.includes('DESCRICAO'));
+          let idxCid = headerP.findIndex(h => h.includes('CIDADE') || h.includes('MUNICIPIO'));
+          let idxSit = headerP.findIndex(h => h.includes('SITUACAO') || h.includes('STATUS'));
+          let idxSet = headerP.findIndex(h => h.includes('SETOR') || h.includes('ORGAO') || h.includes('LOTACAO'));
+          let idxResp = headerP.findIndex(h => h.includes('RESPONSAVEL') || h.includes('TECNICO'));
+          let idxData = headerP.findIndex(h => h.includes('DATA') || h.includes('PROTOCOLADO') || h.includes('ENTRADA'));
+
+          if (idxInst === -1) idxInst = 0;
+          if (idxAno === -1) idxAno = 1;
+          if (idxProc === -1) idxProc = 2;
+          if (idxTipo === -1) idxTipo = 3;
+          if (idxCid === -1) idxCid = 4;
+          if (idxSit === -1) idxSit = 5;
+          if (idxSet === -1) idxSet = 6;
+          if (idxResp === -1) idxResp = 7;
+          if (idxData === -1) idxData = 8;
+
+          const novosProcessos = [];
+
+          for (let i = 1; i < rawLinesP.length; i++) {
+            const col = parseCSVLine(rawLinesP[i]);
+            if (col.length < 3) continue;
+
+            const instTexto = (col[idxInst] || '').trim();
+            const ano = (col[idxAno] || '').replace(/["']/g, '').trim();
+            const numProc = (col[idxProc] || '').replace(/["']/g, '').trim();
+            const tipoAto = (col[idxTipo] || '').replace(/["']/g, '').trim();
+            const situacao = (col[idxSit] || '').replace(/["']/g, '').trim();
+            const cidade = (col[idxCid] || '').replace(/["']/g, '').trim();
+            const setor = (col[idxSet] || 'CEE/MT').replace(/["']/g, '').trim();
+            const responsavel = (col[idxResp] || '—').replace(/["']/g, '').trim();
+            const protocoladoEm = (col[idxData] || '—').replace(/["']/g, '').trim();
+
+            if (!numProc && !tipoAto) continue;
+
+            // 1. FILTRO DE STATUS: Deve ser ATIVO (RECEBER PROCESSO, EM ANDAMENTO, CADASTRANDO)
+            if (!isActiveProcessStatus(situacao)) {
+              continue; // Ignora finalizados e arquivados
+            }
+
+            // 2. FILTRO DE CONTEÚDO: Estritamente Educação Profissional conforme as 4 regras
+            if (!isEducacaoProfissionalProcesso(tipoAto)) {
+              continue; // Ignora processos da educação básica
+            }
+
+            // 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC
+            let codEtec = 0;
+            const matchCod = instTexto.match(/\b(5002|617|1437|4858|2392|3905|867|321|5009|3337|5008|1621|5003|5010|657|5107|656)\b/);
+            if (matchCod) {
+              codEtec = parseInt(matchCod[1], 10);
+            } else if (typeof ETECS_MASTER !== 'undefined') {
+              const instNorm = normalizeStr(instTexto);
+              const cidNorm = normalizeStr(cidade);
+              const etec = ETECS_MASTER.find(e => {
+                const k = normalizeStr(e.key);
+                return instNorm.includes(k) || cidNorm.includes(k) || normalizeStr(e.cidade) === cidNorm;
+              });
+              if (etec) codEtec = etec.cod;
+            }
+
+            if (codEtec === 0) continue; // Descarta se não pertencer a nenhuma das 17 ETECs
+
+            novosProcessos.push({
+              cod: codEtec,
+              instituicao: instTexto || ('ETEC ' + cidade),
+              ano: ano || (new Date().getFullYear().toString()),
+              processo: numProc,
+              tipoAto: tipoAto,
+              cidade: cidade || 'MATO GROSSO',
+              situacao: situacao,
+              setor: setor,
+              responsavel: responsavel,
+              protocoladoEm: protocoladoEm
+            });
+          }
+
+          if (novosProcessos.length > 0) {
+            console.log('✅ SIPE Flow: ' + novosProcessos.length + ' processos ATIVOS da Educação Profissional carregados do SIPE!');
+            appState.processos = novosProcessos;
+            carregouProcessos = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('❌ Erro ao buscar processos online:', err);
+    }
+  }
+
+  // Se ao menos uma das fontes foi carregada, atualizamos o rótulo de fonte
+  if (carregouAtos || carregouProcessos) {
+    const totalA = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
+    const totalP = (appState.processos && appState.processos.length) ? appState.processos.length : 0;
+    appState.customSourceLabel = 'PLANILHA GOOGLE ON-LINE (' + totalA + ' ATOS · ' + totalP + ' PROCESSOS PROFISSIONAIS ATIVOS)';
+    return true;
+  }
+
+  return false;
+}
+    
     async function forcarSincronizacaoPlanilha() {
       const badge = document.getElementById('data-source-badge');
       if (badge) {
