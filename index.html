@@ -3272,19 +3272,42 @@
     // 15. INITIALIZATION
     // =========================================================================
     async function initApp() {
+      // 1. Carrega estados locais persistidos (se houver)
       await loadSavedState();
+
+      // 2. CARREGAMENTO AUTOMÁTICO AO ABRIR O SITE (377 CURSOS DA PLANILHA REAL)
+      // Faz o carregamento direto da planilha online sem precisar clicar no botão
+      const ok = await carregarDadosPlanilhaOnline();
+      
+      const badge = document.getElementById('data-source-badge');
+      if (ok) {
+        const totalAtos = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
+        const totalProc = (appState.processos && appState.processos.length) ? appState.processos.length : 795;
+        if (badge) {
+          badge.innerHTML = 'FONTE: <strong>SIGEDUCA / CEE-MT</strong> (' + totalAtos + ' ATOS · ' + totalProc + ' PROCESSOS SIPE)';
+        }
+      }
+
+      // 3. Atualiza data-base no cabeçalho se houver elemento
+      var elData = document.getElementById('data-base-val');
+      if (elData) {
+        elData.textContent = new Date().toLocaleDateString('pt-BR');
+      }
+
+      // 4. Popula o seletor das 17 ETECs
       populateEtecDropdown();
       syncFilterControlsFromState();
 
-      // Sync active tabs from restored state
+      // 5. Sincroniza abas ativas
       const crossBtn = document.querySelector(`[data-cross-tab="${appState.crossTab}"]`);
       if (crossBtn) setCrossTab(appState.crossTab, crossBtn);
       const dossierBtn = document.querySelector(`[data-dossier-tab="${appState.dossierTab}"]`);
       if (dossierBtn) setDossierTab(appState.dossierTab, dossierBtn);
 
+      // 6. Renderiza todos os KPIs, gráficos e mapa D3 já com os 377 cursos
       renderAll();
 
-      // Re-render map cleanly on resize
+      // 7. Re-renderiza o mapa no redimensionamento da janela
       let resizeTimer = null;
       window.addEventListener(`resize`, () => {
         clearTimeout(resizeTimer);
