@@ -1500,7 +1500,7 @@
       { cod: 656,  key: `SINOP`, nome: `ETEC de Sinop`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE SINOP`, cidade: `SINOP`, regiao: `Norte`, lat: -11.8642, lng: -55.5025 },
       { cod: 5010, key: `SORRISO`, nome: `ETEC de Sorriso`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE SORRISO`, cidade: `SORRISO`, regiao: `Norte`, lat: -12.5425, lng: -55.7211 },
       { cod: 657,  key: `TANGARA DA SERRA`, nome: `ETEC de Tangará da Serra`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE TANGARA DA SERRA`, cidade: `TANGARÁ DA SERRA`, regiao: `Sudoeste`, lat: -14.6229, lng: -57.4933 },
-      { cod: 5107, key: `VARZEA GRANDE`, nome: `ETEC de Várzea Grande`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, cidade: `VÁRZEA GRANDE`, regiao: `Centro-Sul`, lat: -15.6950, lng: -56.1850 }
+      { cod: 5107, key: `VARZEA GRANDE`, nome: `ETEC de Várzea Grande`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, cidade: `VÁRZEA GRANDE`, regiao: `Centro-Sul`, lat: -16.0800, lng: -56.2200 }
     ];
 
     // Public-domain simplified Mato Grosso border polygon [lng, lat] + neighbors + BR highways
@@ -2396,7 +2396,7 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
       // City labels with smart offsets for Cuiabá/Várzea Grande & Campo Verde/Primavera/Poxoréu
     const labelOffsets = {
     3905: { dx: 14, dy: -8, anchor: "start" }, // Cuiabá: direita e acima
-    5107: { dx: -14, dy: -2, anchor: "end" },   // Várzea Grande: esquerda e meia altura
+    5107: { dx: 0, dy: 18, anchor: `middle` },   // Várzea Grande (centralizado logo ABAIXO da bolinha)
     2392: { dx: -12, dy: -10, anchor: "end" },  // Campo Verde: esquerda e acima
     5003: { dx: 12, dy: -10, anchor: "start" }, // Primavera do Leste: direita e acima
     1621: { dx: 12, dy: 16, anchor: "start" },  // Poxoréu: direita e abaixo
