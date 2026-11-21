@@ -2394,17 +2394,17 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
         .attr(`stroke-width`, 2);
 
       // City labels with smart offsets for Cuiabá/Várzea Grande & Campo Verde/Primavera/Poxoréu
-     const labelOffsets = {
-        3905: { dx: 14, dy: -8, anchor: "start" },   // Cuiabá: empurrado para a direita e para cima
-        5107: { { dx: -14, dy: -2, anchor: "end" },    // Várzea Grande: empurrado para a esquerda e para baixo
-        2392: { dx: -12, dy: -10, anchor: "end" },   // Campo Verde: recuado à esquerda e para cima
-        5003: { dx: 12, dy: -10, anchor: "start" },  // Primavera do Leste: à direita e para cima
-        1621: { dx: 12, dy: 16, anchor: "start" },   // Poxoréu: à direita e para baixo
-        867:  { dx: 14, dy: 6, anchor: "start" },    // Rondonópolis: à direita alinhado
-        657:  { dx: -12, dy: 4, anchor: "end" },     // Tangará da Serra: à esquerda do ponto
-        4858: { dx: -12, dy: 4, anchor: "end" },     // Cáceres: à esquerda do ponto
-        5008: { dx: 12, dy: 14, anchor: "start" }    // Matupá: abaixo de Alta Floresta
-      };
+    const labelOffsets = {
+    3905: { dx: 14, dy: -8, anchor: "start" }, // Cuiabá: direita e acima
+    5107: { dx: -14, dy: -2, anchor: "end" },   // Várzea Grande: esquerda e meia altura
+    2392: { dx: -12, dy: -10, anchor: "end" },  // Campo Verde: esquerda e acima
+    5003: { dx: 12, dy: -10, anchor: "start" }, // Primavera do Leste: direita e acima
+    1621: { dx: 12, dy: 16, anchor: "start" },  // Poxoréu: direita e abaixo
+    867: { dx: 14, dy: 6, anchor: "start" },    // Rondonópolis: direita alinhado
+    657: { dx: -12, dy: 4, anchor: "end" },     // Tangará da Serra: esquerda do ponto
+    4858: { dx: -12, dy: 4, anchor: "end" },    // Cáceres: esquerda do ponto
+    5008: { dx: 12, dy: 14, anchor: "start" }   // Matupá: abaixo de Alta Floresta
+};
 
       if (appState.mapLayers.labels) {
         nodes.append(`text`)
