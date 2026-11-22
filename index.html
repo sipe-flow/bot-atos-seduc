@@ -1766,7 +1766,7 @@ async function carregarDadosPlanilhaOnline() {
               continue; // Ignora finalizados e arquivados
             }
 
-// 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC
+ // 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC
             let codEtec = 0;
             const matchCod = instTexto.match(/\b(5002|617|1437|4858|2392|3905|867|321|5009|3337|5008|1621|5003|5010|657|5107|656|96)\b/);
             if (matchCod) {
@@ -1786,7 +1786,7 @@ async function carregarDadosPlanilhaOnline() {
               if (etec) {
                 codEtec = etec.cod;
               } else {
-                // 2. Mapeamento Oficial de Polos de Extensão e Turmas Fora de Sede
+                // 2. Mapeamento de Polos de Extensão e Turmas Fora de Sede
                 if (linhaNorm.includes('PEIXOTO') || linhaNorm.includes('GUARANTA') || linhaNorm.includes('TERRA NOVA')) {
                   codEtec = 5008; // Polo Matupá
                 } else if (linhaNorm.includes('XAVANTINA') || linhaNorm.includes('ARAGUAIA') || linhaNorm.includes('CANARANA')) {
@@ -1813,26 +1813,22 @@ async function carregarDadosPlanilhaOnline() {
                   codEtec = 5002; // Polo Água Boa
                 } else if (linhaNorm.includes('NOBRES') || linhaNorm.includes('ROSARIO OESTE') || linhaNorm.includes('ALTO PARAGUAI')) {
                   codEtec = 321;  // Polo Diamantino
-                } else if (linhaNorm.includes('SANTO ANTONIO') || linhaNorm.includes('CHAPADA') || linhaNorm.includes('POCONE') || linhaNorm.includes('LIVRAMENTO') || linhaNorm.includes('SECITECI') || linhaNorm.includes('SEDUC') || linhaNorm.includes('ESTADO DE MATO GROSSO')) {
-                  codEtec = 3905; // Polo Cuiabá / Órgão Central
                 } else {
-                  // O robô do GitHub extrai apenas os processos da Rede Estadual ETEC.
-                  // Nenhum processo ativo é descartado: associa ao polo estadual de referência (Cuiabá)
-                  codEtec = 3905;
+                  codEtec = 3905; // Cuiabá polo estadual
                 }
               }
             }
 
-            // Garante o vínculo com os dados da ETEC encontrada
-            const etecRef = ETECS_MASTER.find(e => e.cod === codEtec) || ETECS_MASTER.find(e => e.cod === 3905);
+            // Não descarta nenhum processo: se não achou cidade, vincula a Cuiabá (Polo Estadual)
+            if (codEtec === 0) codEtec = 3905;
 
             novosProcessos.push({
               cod: codEtec,
-              instituicao: instTexto || etecRef.nomeCompleto,
+              instituicao: instTexto || ('ETEC ' + cidade),
               ano: ano || (new Date().getFullYear().toString()),
               processo: numProc,
               tipoAto: tipoAto,
-              cidade: cidade || etecRef.cidade,
+              cidade: cidade || 'MATO GROSSO',
               situacao: situacao,
               setor: setor,
               responsavel: responsavel,
