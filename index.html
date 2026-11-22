@@ -2925,22 +2925,25 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
           statusBadge = `<span class="stamp stamp-vermelho">Vencido (${Math.abs(item.daysRemaining)}d)</span>`;
         }
 
-// AÇÃO REGULATÓRIA RECOMENDADA (BASEADA NA TEMPESTIVIDADE DO ATO)
+        // AÇÃO REGULATÓRIA EM RETÂNGULO (STAMP)
         let acaoRegulatoriaHtml = '';
         if (item.daysRemaining !== null && item.daysRemaining < 0) {
           acaoRegulatoriaHtml = `
-            <div style="font-weight:600;color:var(--error, #dc2626);font-size:0.8125rem;">Autuar Renovação (CEE-MT)</div>
-            <div style="font-size:0.75rem;color:var(--on-surface-variant);">Abertura prioritária no SIPE</div>
-          `;
+            <span class="stamp stamp-vermelho" style="white-space:normal;display:inline-block;line-height:1.3;padding:4px 8px;text-align:left;">
+              Protocolar Renovação CEE-MT
+            </span>
+            `;
         } else if (item.daysRemaining !== null && item.daysRemaining <= 90) {
           acaoRegulatoriaHtml = `
-            <div style="font-weight:600;color:var(--warning-ink, #b45309);font-size:0.8125rem;">Instruir Processo de Renovação</div>
-            <div style="font-size:0.75rem;color:var(--on-surface-variant);">Prazo crítico: juntada de peças</div>
+            <span class="stamp stamp-amarelo" style="white-space:normal;display:inline-block;line-height:1.3;padding:4px 8px;text-align:left;">
+              Instruir Processo de Renovação
+            </span>
           `;
         } else {
           acaoRegulatoriaHtml = `
-            <div style="font-weight:600;color:var(--primary, #0284c7);font-size:0.8125rem;">Planejar Renovação Preventiva</div>
-            <div style="font-size:0.75rem;color:var(--on-surface-variant);">Elaborar projeto pedagógico</div>
+            <span class="stamp stamp-info" style="white-space:normal;display:inline-block;line-height:1.3;padding:4px 8px;text-align:left;">
+              Planejar Renovação Preventiva
+            </span>
           `;
         }
 
