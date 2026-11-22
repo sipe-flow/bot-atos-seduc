@@ -1858,7 +1858,7 @@ async function carregarDadosPlanilhaOnline() {
   if (carregouAtos || carregouProcessos) {
     const totalA = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
     const totalP = (appState.processos && appState.processos.length) ? appState.processos.length : 0;
-    appState.customSourceLabel = 'PLANILHA GOOGLE ON-LINE (' + totalA + ' ATOS · ' + totalP + ' PROCESSOS PROFISSIONAIS ATIVOS)';
+    appState.customSourceLabel = 'Base Integrada em Tempo Real (' + totalA + ' ATOS · ' + totalP + ' PROCESSOS ATIVOS)';
     return true;
   }
 
