@@ -1769,24 +1769,28 @@ async function carregarDadosPlanilhaOnline() {
  // 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC
             let codEtec = 0;
             const matchCod = instTexto.match(/\b(5002|617|1437|4858|2392|3905|867|321|5009|3337|5008|1621|5003|5010|657|5107|656|96)\b/);
-            if (matchCod) {
+            if (matchCod && matchCod.length > 1 && matchCod[1]) {
               codEtec = parseInt(matchCod[1], 10);
               if (codEtec === 96) codEtec = 867; // 96 é código legado da ETEC de Rondonópolis
-            } else if (typeof ETECS_MASTER !== 'undefined') {
-              const instNorm = normalizeStr(instTexto);
-              const cidNorm = normalizeStr(cidade);
+            }
+
+            if (!codEtec) {
+              const instNorm = (typeof normalizeStr === 'function') ? normalizeStr(instTexto) : String(instTexto || '').toUpperCase();
+              const cidNorm = (typeof normalizeStr === 'function') ? normalizeStr(cidade) : String(cidade || '').toUpperCase();
               const linhaNorm = instNorm + ' ' + cidNorm;
 
               // 1. Busca Direta nas 17 Sedes
-              const etec = ETECS_MASTER.find(e => {
-                const k = normalizeStr(e.key);
-                return instNorm.includes(k) || cidNorm.includes(k) || normalizeStr(e.cidade) === cidNorm;
-              });
+              if (typeof ETECS_MASTER !== 'undefined' && Array.isArray(ETECS_MASTER)) {
+                const etec = ETECS_MASTER.find(e => {
+                  const k = (typeof normalizeStr === 'function') ? normalizeStr(e.key) : String(e.key || '').toUpperCase();
+                  const c = (typeof normalizeStr === 'function') ? normalizeStr(e.cidade) : String(e.cidade || '').toUpperCase();
+                  return instNorm.includes(k) || cidNorm.includes(k) || c === cidNorm;
+                });
+                if (etec) codEtec = etec.cod;
+              }
 
-              if (etec) {
-                codEtec = etec.cod;
-              } else {
-                // 2. Mapeamento de Polos de Extensão e Turmas Fora de Sede
+              // 2. Mapeamento de Polos de Extensão e Turmas Fora de Sede
+              if (!codEtec) {
                 if (linhaNorm.includes('PEIXOTO') || linhaNorm.includes('GUARANTA') || linhaNorm.includes('TERRA NOVA')) {
                   codEtec = 5008; // Polo Matupá
                 } else if (linhaNorm.includes('XAVANTINA') || linhaNorm.includes('ARAGUAIA') || linhaNorm.includes('CANARANA')) {
@@ -1819,11 +1823,8 @@ async function carregarDadosPlanilhaOnline() {
               }
             }
 
-            // Não descarta nenhum processo: se não achou cidade, vincula a Cuiabá (Polo Estadual)
-            if (codEtec === 0) codEtec = 3905;
-
             novosProcessos.push({
-              cod: codEtec,
+              cod: codEtec || 3905,
               instituicao: instTexto || ('ETEC ' + cidade),
               ano: ano || (new Date().getFullYear().toString()),
               processo: numProc,
