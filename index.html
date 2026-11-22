@@ -2931,14 +2931,26 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
           statusBadge = `<span class="stamp stamp-vermelho">Vencido</span>`;
         }
 
-        let procHtml = `<span style="color:var(--on-surface-variant);font-size:0.82rem;">Sem processo no SIPE</span>`;
+// =========================================================================
+// CORREÇÃO: RETÂNGULO VERMELHO EM "SEM PROCESSO ATIVO" (procHtml)
+// =========================================================================
+
+        let procHtml = `
+          <span class="stamp stamp-vermelho" style="white-space:normal;display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.2;padding:4px 8px;">
+            Protocolar<br>Renovação CEE
+          </span>
+        `;
         if (item.matchedProcess) {
           procHtml = `
             <div class="mono-code" style="color:var(--primary);font-weight:600;">Proc. ${escapeHtml(item.matchedProcess.processo)}</div>
             <div style="font-size:0.78rem;color:var(--on-surface-variant);">${escapeHtml(item.matchedProcess.situacao)} · ${escapeHtml(item.matchedProcess.setor)}</div>
           `;
         } else if (item.category === `VIGENTE`) {
-          procHtml = `<span style="color:var(--secondary);font-weight:600;font-size:0.82rem;">Respaldo CEE Pleno</span>`;
+          procHtml = `
+            <span class="stamp stamp-verde" style="white-space:normal;display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.2;padding:4px 8px;">
+              Respaldo CEE Pleno
+            </span>
+          `;
         }
 
         let diagBadge = `<span class="stamp stamp-amarelo">Monitorar Prazo</span>`;
