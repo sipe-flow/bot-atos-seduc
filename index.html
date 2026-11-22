@@ -1099,7 +1099,7 @@
           </select>
         </div>
         <div class="field-group">
-          <label class="field-label" for="filter-risk">Semáforo de Risco</label>
+          <label class="field-label" for="filter-risk">Grau de Risco</label>
           <select id="filter-risk" class="field-control" onchange="onFilterChange()">
             <option value="TODOS">Todos os Níveis de Risco</option>
             <option value="VERMELHO">Crítico — Vencido sem Protocolo</option>
@@ -1189,7 +1189,7 @@
           </div>
 
           <div class="map-canvas-wrap" id="map-container">
-            <svg id="mt-map-svg" role="img" aria-label="Mapa georreferenciado das 17 ETECs de Mato Grosso com semáforo de risco regulatório"></svg>
+            <svg id="mt-map-svg" role="img" aria-label="Mapa georreferenciado das 17 ETECs de Mato Grosso com Grau de risco regulatório"></svg>
             <div id="map-tooltip" class="map-tooltip" role="status" aria-live="polite"></div>
           </div>
 
@@ -1219,7 +1219,7 @@
                   <th class="num">A Venc.</th>
                   <th class="num">Venc.</th>
                   <th class="num">Proc.</th>
-                  <th>Semáforo</th>
+                  <th>Grau<br>de Risco</th>
                 </tr>
               </thead>
               <tbody id="tbody-etec-semaphore"></tbody>
@@ -3117,7 +3117,7 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
       if (badgesEl) {
         const stampCls = unit.risk === `VERMELHO` ? `stamp-vermelho` : (unit.risk === `AMARELO` ? `stamp-amarelo` : `stamp-verde`);
         badgesEl.innerHTML = `
-          <span class="stamp ${stampCls}">SEMÁFORO: ${escapeHtml(unit.riskLabel)}</span>
+          <span class="stamp ${stampCls}"Grau de Risco: ${escapeHtml(unit.riskLabel)}</span>
           <span class="stamp stamp-brass">CONFORMIDADE: ${unit.regularPct}%</span>
         `;
       }
