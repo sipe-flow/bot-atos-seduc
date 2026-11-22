@@ -2920,10 +2920,13 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
         const etecObj = ETECS_MASTER.find(e => e.cod === Number(item.cod));
         const unitLabel = etecObj ? etecObj.cidade : item.municipio;
 
-        let statusBadge = `<span class="stamp stamp-amarelo">A Vencer (${item.daysRemaining}d)</span>`;
-        if (item.daysRemaining !== null && item.daysRemaining < 0) {
-          statusBadge = `<span class="stamp stamp-vermelho">Vencido (${Math.abs(item.daysRemaining)}d)</span>`;
-        }
+    // =========================================================================
+    // COMO DEVE FICAR AGORA (SEM OS DIAS ENTRE PARÊNTESES):
+    // =========================================================================
+    let statusBadge = `<span class="stamp stamp-amarelo">A Vencer</span>`;
+    if (item.daysRemaining !== null && item.daysRemaining < 0) {
+    statusBadge = `<span class="stamp stamp-vermelho">Vencido</span>`;
+    }
 
         // AÇÃO REGULATÓRIA EM RETÂNGULO (STAMP)
         let acaoRegulatoriaHtml = '';
@@ -3131,7 +3134,7 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
       if (tbodyAtos) {
         tbodyAtos.innerHTML = unit.atos.map(a => {
           let stBadge = `<span class="stamp stamp-verde">Vigente</span>`;
-          if (a.category === `A_VENCER`) stBadge = `<span class="stamp stamp-amarelo">A Vencer (${a.daysRemaining}d)</span>`;
+          if (a.category === `A_VENCER`) stBadge = `<span class="stamp stamp-amarelo">A Vencer</span>`
           else if (a.category === `VENCIDO_COBERTO`) stBadge = `<span class="stamp stamp-info">Vencido · Processo Ativo</span>`;
           else if (a.category === `VENCIDO_DESCOBERTO`) stBadge = `<span class="stamp stamp-vermelho">Vencido · Sem Protocolo</span>`;
 
