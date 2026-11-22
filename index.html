@@ -1858,7 +1858,7 @@ async function carregarDadosPlanilhaOnline() {
   if (carregouAtos || carregouProcessos) {
     const totalA = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
     const totalP = (appState.processos && appState.processos.length) ? appState.processos.length : 0;
-    appState.customSourceLabel = 'Base Integrada em Tempo Real (' + totalA + ' ATOS · ' + totalP + ' PROCESSOS ATIVOS)';
+    appState.customSourceLabel = 'SIGEDUCA / CEE-MT (' + totalA + ' ATOS · ' + totalP + ' PROCESSOS ATIVOS)';
     return true;
   }
 
@@ -1868,7 +1868,7 @@ async function carregarDadosPlanilhaOnline() {
     async function forcarSincronizacaoPlanilha() {
       const badge = document.getElementById('data-source-badge');
       if (badge) {
-        badge.innerHTML = 'FONTE: <strong>SINCRONIZANDO COM GOOGLE SHEETS...</strong>';
+        badge.innerHTML = 'FONTE: <strong>Atualizando dados com o repositório oficial...</strong>';
       }
       const ok = await carregarDadosPlanilhaOnline();
       
