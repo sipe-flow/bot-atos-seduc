@@ -2933,7 +2933,7 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
         if (item.daysRemaining !== null && item.daysRemaining < 0) {
           acaoRegulatoriaHtml = `
             <span class="stamp stamp-vermelho" style="white-space:normal;display:inline-block;line-height:1.3;padding:4px 8px;text-align:left;">
-              Protocolar Renovação CEE
+              Protocolar<br>Renovação CEE
             </span>
             `;
         } else if (item.daysRemaining !== null && item.daysRemaining <= 90) {
@@ -2952,7 +2952,7 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
 
         let diagBadge = `<span class="stamp stamp-amarelo">Monitorar Prazo</span>`;
         if (item.category === `VENCIDO_DESCOBERTO`) {
-          diagBadge = `<span class="stamp stamp-vermelho">Pendente de Regularização</span>`;
+          diagBadge = `<span class="stamp stamp-vermelho">Pendente de<br>Regularização</span>`;
         } else if (item.category === `VENCIDO_COBERTO`) {
           diagBadge = `<span class="stamp stamp-info">Em Regularização CEE</span>`;
         } else if (item.category === `A_VENCER` && item.matchedProcess) {
