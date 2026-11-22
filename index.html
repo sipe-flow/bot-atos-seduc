@@ -1545,7 +1545,8 @@
     // INTEGRAÇÃO COM A PLANILHA OFICIAL GOOGLE (TEMPO REAL)
     // =========================================================================
     const URL_PLANILHA_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS9-yb5ewD5LobCyj82S4yLTtUINPWk9bx8HngF4flfJ3xT4tQhrkRm4_wM4M8EGFhQkedrfLLqMvI3/pub?gid=0&single=true&output=csv";
-    const URL_PLANILHA_PROCESSOS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS9-yb5ewD5LobCyj82S4yLTtUINPWk9bx8HngF4flfJ3xT4tQhrkRm4_wM4M8EGFhQkedrfLLqMvI3/pub?gid=0#gid=0&single=true&output=csv"
+    const URL_PLANILHA_PROCESSOS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsP6XBz8M3xroIJIrQesLCfo-IeQgsgcBqurR7_6hGv-cGSIZEbsTVi54N79xaKNOVGYXGq2SHxwe5/pub?gid=0&single=true&output=csv";
+
 
 
     function parseCSVLine(text) {
@@ -1710,7 +1711,7 @@ async function carregarDadosPlanilhaOnline() {
     }
   }
 
-   // =========================================================================
+ // =========================================================================
   // PARTE B: CARREGAMENTO DOS PROCESSOS (FILTRADO POR EDUCAÇÃO PROFISSIONAL ATIVA)
   // =========================================================================
   if (URL_PLANILHA_PROCESSOS_CSV && URL_PLANILHA_PROCESSOS_CSV.trim() !== '' && !URL_PLANILHA_PROCESSOS_CSV.includes('SEU_LINK')) {
@@ -1722,7 +1723,6 @@ async function carregarDadosPlanilhaOnline() {
         const rawLinesP = csvP.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (rawLinesP.length >= 2) {
           const headerP = parseCSVLine(rawLinesP[0]).map(h => normalizeStr(h));
-          
           let idxInst = headerP.findIndex(h => h.includes('INSTITUICAO') || h.includes('ESCOLA') || h.includes('UNIDADE'));
           let idxAno = headerP.findIndex(h => h.includes('ANO'));
           let idxProc = headerP.findIndex(h => h.includes('PROCESSO') || h.includes('NUMERO') || h.includes('PROTOCOLO'));
@@ -1763,34 +1763,35 @@ async function carregarDadosPlanilhaOnline() {
 
             // 1. FILTRO DE STATUS: Deve ser ATIVO (RECEBER PROCESSO, EM ANDAMENTO, CADASTRANDO)
             if (!isActiveProcessStatus(situacao)) {
-              continue; // Ignora finalizados e arquivados
+              continue;
             }
 
- // 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC
+            // 2. FILTRO DE CONTEÚDO: Estritamente Educação Profissional conforme as 4 regras
+            if (!isEducacaoProfissionalProcesso(tipoAto)) {
+              continue;
+            }
+
+            // 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC (COM POLOS E EXTENSÕES)
             let codEtec = 0;
             const matchCod = instTexto.match(/\b(5002|617|1437|4858|2392|3905|867|321|5009|3337|5008|1621|5003|5010|657|5107|656|96)\b/);
-            if (matchCod && matchCod.length > 1 && matchCod[1]) {
+            if (matchCod) {
               codEtec = parseInt(matchCod[1], 10);
-              if (codEtec === 96) codEtec = 867; // 96 é código legado da ETEC de Rondonópolis
-            }
-
-            if (!codEtec) {
-              const instNorm = (typeof normalizeStr === 'function') ? normalizeStr(instTexto) : String(instTexto || '').toUpperCase();
-              const cidNorm = (typeof normalizeStr === 'function') ? normalizeStr(cidade) : String(cidade || '').toUpperCase();
+              if (codEtec === 96) codEtec = 867; // 96 = Rondonópolis legado
+            } else if (typeof ETECS_MASTER !== 'undefined') {
+              const instNorm = normalizeStr(instTexto);
+              const cidNorm = normalizeStr(cidade);
               const linhaNorm = instNorm + ' ' + cidNorm;
 
-              // 1. Busca Direta nas 17 Sedes
-              if (typeof ETECS_MASTER !== 'undefined' && Array.isArray(ETECS_MASTER)) {
-                const etec = ETECS_MASTER.find(e => {
-                  const k = (typeof normalizeStr === 'function') ? normalizeStr(e.key) : String(e.key || '').toUpperCase();
-                  const c = (typeof normalizeStr === 'function') ? normalizeStr(e.cidade) : String(e.cidade || '').toUpperCase();
-                  return instNorm.includes(k) || cidNorm.includes(k) || c === cidNorm;
-                });
-                if (etec) codEtec = etec.cod;
-              }
+              // 3.1 Busca Direta nas 17 Sedes
+              const etec = ETECS_MASTER.find(e => {
+                const k = normalizeStr(e.key);
+                return instNorm.includes(k) || cidNorm.includes(k) || normalizeStr(e.cidade) === cidNorm;
+              });
 
-              // 2. Mapeamento de Polos de Extensão e Turmas Fora de Sede
-              if (!codEtec) {
+              if (etec) {
+                codEtec = etec.cod;
+              } else {
+                // 3.2 Mapeamento dos Polos e Municípios de Extensão das ETECs
                 if (linhaNorm.includes('PEIXOTO') || linhaNorm.includes('GUARANTA') || linhaNorm.includes('TERRA NOVA')) {
                   codEtec = 5008; // Polo Matupá
                 } else if (linhaNorm.includes('XAVANTINA') || linhaNorm.includes('ARAGUAIA') || linhaNorm.includes('CANARANA')) {
@@ -1823,8 +1824,11 @@ async function carregarDadosPlanilhaOnline() {
               }
             }
 
+            // Garante que nenhum processo ativo da Educação Profissional fique de fora
+            if (codEtec === 0) codEtec = 3905;
+
             novosProcessos.push({
-              cod: codEtec || 3905,
+              cod: codEtec,
               instituicao: instTexto || ('ETEC ' + cidade),
               ano: ano || (new Date().getFullYear().toString()),
               processo: numProc,
@@ -1848,6 +1852,7 @@ async function carregarDadosPlanilhaOnline() {
       console.error('❌ Erro ao buscar processos online:', err);
     }
   }
+
 
   // Se ao menos uma das fontes foi carregada, atualizamos o rótulo de fonte
   if (carregouAtos || carregouProcessos) {
