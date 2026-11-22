@@ -1,4 +1,2896 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="dashboard">
+  <meta name="design-style" content="charter">
+  <title>SIPE Flow MT — Sala de Situação e Monitoramento Regulatório das 17 ETECs</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Inter:wght@100..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+
+      /* Charter base tokens */
+      --background: #f7f4ec;
+      --surface-container-low: #fffdf8;
+      --surface-container: #ece5d4;
+      --surface-container-high: #e3dac4;
+
+      /* Ink */
+      --on-surface: #1c1f26;
+      --on-surface-variant: #4f5360;
+
+      /* Rules */
+      --outline: #b08d57;
+      --outline-variant: #d9cfb8;
+
+      /* Accents */
+      --primary: #14213d;
+      --on-primary: #f7f4ec;
+      --primary-container: #e3e6ee;
+      --on-primary-container: #14213d;
+      --secondary: #2d5a4a;
+      --tertiary: #8a6a35;
+      --error: #9b2c2c;
+      --on-error: #f7f4ec;
+
+      /* Semantic states (AA compliant on cream & leaf) */
+      --positive: #1f4e3d;
+      --positive-bg: #e5efe9;
+      --warning: #8f4700;
+      --warning-bg: #faecd8;
+      --error-ink: #7f1d1d;
+      --error-bg: #f8e2e2;
+      --info-ink: #2b4560;
+      --info-bg: #e5ebf2;
+      --focus: #14213d;
+
+      /* Data visualization palette */
+      --data-1: #14213d;
+      --data-2: #8a6a35;
+      --data-3: #2d5a4a;
+      --data-4: #5b7aa0;
+      --data-context: #c2bba9;
+
+      /* Map cartography tokens */
+      --map-ground: #f3efe4;
+      --map-state: #fffdf8;
+      --map-neighbor: #ebe5d6;
+      --map-grid: #dfd7c4;
+      --map-road: #c9bfa9;
+
+      /* Typography */
+      --font-headline: 'Libre Caslon Text', serif;
+      --font-body: 'Inter', sans-serif;
+      --font-label: 'IBM Plex Mono', monospace;
+
+      --display-size: clamp(1.65rem, 1.3rem + 1.2vw, 2.25rem);
+      --headline-size: clamp(1.2rem, 1.08rem + 0.45vw, 1.45rem);
+      --subhead-size: clamp(1.02rem, 0.96rem + 0.2vw, 1.15rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.12vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Shape (Charter squared corners) */
+      --rounded: 0.125rem;
+      --rounded-lg: 0.125rem;
+      --rounded-full: 0.125rem;
+
+      /* Effects */
+      --brass-rule: 2px solid var(--outline);
+      --hairline: 1px solid var(--outline-variant);
+      --leaf-underline: 0 1px 0 var(--outline-variant);
+
+      /* Spacing scale */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    /* Base reset */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    /* Title Band (Charter #1 & #2) */
+    .title-band {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-bottom: 3px solid var(--outline);
+      padding: var(--space-lg) var(--space-lg) var(--space-lg);
+    }
+    .title-band-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-lg);
+      align-items: end;
+    }
+    .gov-kicker {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: color-mix(in srgb, var(--outline) 75%, var(--on-primary));
+      margin-bottom: var(--space-xs);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+    .title-band h1 {
+      font-family: var(--font-headline);
+      font-weight: 400;
+      font-size: var(--display-size);
+      line-height: 1.12;
+      letter-spacing: -0.01em;
+      margin: 0 0 var(--space-sm) 0;
+      color: var(--on-primary);
+    }
+    .title-band .lede {
+      margin: 0;
+      max-width: 70ch;
+      font-size: var(--body-size);
+      color: color-mix(in srgb, var(--on-primary) 82%, var(--primary));
+      line-height: 1.5;
+    }
+    .header-meta-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: var(--space-sm);
+    }
+    .header-meta-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      justify-content: flex-end;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: color-mix(in srgb, var(--on-primary) 85%, var(--primary));
+      border-bottom: 1px solid color-mix(in srgb, var(--outline) 55%, var(--primary));
+      padding-bottom: var(--space-xs);
+    }
+    .header-meta-strip strong {
+      color: var(--on-primary);
+      font-weight: 600;
+    }
+    .header-btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    /* Page container */
+    .page-grid {
+      display: grid;
+      gap: var(--space-xl);
+      padding: var(--space-lg);
+      max-width: 1320px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-xs);
+      min-height: 44px;
+      padding: 0 var(--space-md);
+      border-radius: var(--rounded);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+      white-space: nowrap;
+    }
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--primary) 85%, var(--on-surface));
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--primary-container);
+    }
+    .btn-header-outline {
+      background: transparent;
+      color: var(--on-primary);
+      border-color: color-mix(in srgb, var(--outline) 75%, var(--on-primary));
+      min-height: 40px;
+      font-size: 0.8125rem;
+    }
+    .btn-header-outline:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--on-primary) 12%, var(--primary));
+    }
+    .btn-header-brass {
+      background: var(--surface-container-low);
+      color: var(--primary);
+      border-color: var(--outline);
+      min-height: 40px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+    .btn-header-brass:hover:not(:disabled) {
+      background: var(--surface-container);
+    }
+    .btn-sm {
+      min-height: 36px;
+      padding: 0 var(--space-sm);
+      font-size: 0.8125rem;
+    }
+
+    /* Filter Bar */
+    .filter-panel {
+      background: var(--surface-container-low);
+      border-top: var(--brass-rule);
+      box-shadow: var(--leaf-underline);
+      padding: var(--space-md) var(--space-lg);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+      gap: var(--space-md);
+      align-items: end;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .field-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--on-surface-variant);
+    }
+    .field-control {
+      min-height: 44px;
+      width: 100%;
+      padding: 0.5rem var(--space-sm);
+      background: var(--surface-container-low);
+      color: var(--on-surface);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      font-size: 0.9rem;
+      transition: border-color var(--dur-micro) var(--ease-out);
+    }
+    select.field-control {
+      padding-right: 2rem;
+    }
+    .field-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-container);
+    }
+    .filter-actions {
+      display: flex;
+      gap: var(--space-sm);
+      align-items: end;
+    }
+
+    /* KPI Summary Strip */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+    .figure-card {
+      background: var(--surface-container-low);
+      border-top: var(--brass-rule);
+      box-shadow: var(--leaf-underline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .figure-card--alert {
+      border-top-color: var(--error);
+    }
+    .figure-card--positive {
+      border-top-color: var(--secondary);
+    }
+    .figure-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--on-surface-variant);
+      margin-bottom: var(--space-xs);
+    }
+    .figure-value {
+      font-family: var(--font-headline);
+      font-weight: 400;
+      font-size: clamp(1.75rem, 1.4rem + 1vw, 2.25rem);
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums lining-nums;
+      color: var(--on-surface);
+    }
+    .figure-delta {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      margin-top: var(--space-sm);
+      color: var(--tertiary);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      align-items: center;
+    }
+    .figure-delta--positive { color: var(--positive); }
+    .figure-delta--error { color: var(--error-ink); }
+    .figure-delta--warning { color: var(--warning); }
+
+    /* Section Headings (Charter #5) */
+    .section-head {
+      border-top: var(--brass-rule);
+      padding-top: var(--space-md);
+      border-bottom: var(--hairline);
+      padding-bottom: var(--space-sm);
+      margin-bottom: var(--space-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+    .section-kicker {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tertiary);
+      margin-bottom: var(--space-xs);
+      display: block;
+    }
+    .section-head h2 {
+      font-family: var(--font-headline);
+      font-weight: 400;
+      font-size: var(--headline-size);
+      line-height: 1.2;
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .section-subtitle {
+      font-size: 0.875rem;
+      color: var(--on-surface-variant);
+      margin: var(--space-xs) 0 0 0;
+      max-width: 72ch;
+    }
+
+    /* Two-column asymmetric grids */
+    .split-7-5 {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      gap: var(--space-lg);
+      align-items: stretch;
+    }
+    .split-6-6 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--space-lg);
+      align-items: stretch;
+    }
+
+    /* Leaf Panels */
+    .leaf-panel {
+      background: var(--surface-container-low);
+      border: var(--hairline);
+      border-top: var(--brass-rule);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      border-bottom: var(--hairline);
+      padding-bottom: var(--space-sm);
+    }
+    .panel-title {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: var(--subhead-size);
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .panel-meta {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    /* Map Container */
+    .map-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .map-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      align-items: center;
+    }
+    .map-canvas-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 490px;
+      height: 500px;
+      background-color: var(--map-ground);
+      background-image:
+        linear-gradient(to right, var(--map-grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--map-grid) 1px, transparent 1px);
+      background-size: 36px 36px;
+      border: var(--hairline);
+      overflow: hidden;
+    }
+    #mt-map-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+    #mt-map-svg:active {
+      cursor: grabbing;
+    }
+    .map-tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: var(--surface-container-low);
+      border: 1px solid var(--primary);
+      border-top: var(--brass-rule);
+      padding: var(--space-sm) var(--space-md);
+      min-width: 220px;
+      max-width: 280px;
+      font-size: 0.8125rem;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity var(--dur-micro) var(--ease-out);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--on-surface) 14%, transparent);
+    }
+    .map-tooltip.visible {
+      opacity: 1;
+    }
+    .map-legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+      font-size: 0.8125rem;
+      color: var(--on-surface-variant);
+      padding-top: var(--space-xs);
+      border-top: var(--hairline);
+    }
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      align-items: center;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .dot-swatch {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 1.5px solid var(--surface-container-low);
+      box-shadow: 0 0 0 1px var(--on-surface-variant);
+    }
+    .dot-verde { background: var(--secondary); }
+    .dot-amarelo { background: var(--warning); }
+    .dot-vermelho { background: var(--error); }
+
+    /* Status Stamps / Tags (Charter: squared 2px corners, never pills) */
+    .stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.18rem 0.5rem;
+      border-radius: var(--rounded);
+      font-family: var(--font-label);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .stamp-verde {
+      background: var(--positive-bg);
+      color: var(--positive);
+      border-color: color-mix(in srgb, var(--positive) 35%, transparent);
+    }
+    .stamp-amarelo {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+    }
+    .stamp-vermelho {
+      background: var(--error-bg);
+      color: var(--error-ink);
+      border-color: color-mix(in srgb, var(--error) 40%, transparent);
+    }
+    .stamp-info {
+      background: var(--info-bg);
+      color: var(--info-ink);
+      border-color: color-mix(in srgb, var(--info-ink) 30%, transparent);
+    }
+    .stamp-brass {
+      background: transparent;
+      color: var(--tertiary);
+      border-color: var(--outline);
+    }
+
+    /* Tables (Charter's natural habitat) */
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      border: var(--hairline);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      background: var(--surface-container-low);
+    }
+    table.data-table thead th {
+      background: var(--surface-container-high);
+      color: var(--on-surface);
+      font-family: var(--font-label);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: left;
+      padding: 0.65rem 0.75rem;
+      border-bottom: var(--brass-rule);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      white-space: nowrap;
+    }
+    table.data-table thead th.num,
+    table.data-table tbody td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums lining-nums;
+      font-family: var(--font-label);
+    }
+    table.data-table tbody td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: var(--hairline);
+      vertical-align: middle;
+      color: var(--on-surface);
+    }
+    table.data-table tbody tr {
+      transition: background-color var(--dur-micro) var(--ease-out);
+    }
+    table.data-table tbody tr:hover {
+      background: var(--surface-container);
+    }
+    table.data-table tbody tr.is-selected {
+      background: var(--primary-container);
+    }
+    table.data-table tbody tr.clickable-row {
+      cursor: pointer;
+    }
+    .mono-code {
+      font-family: var(--font-label);
+      font-size: 0.8rem;
+      color: var(--on-surface-variant);
+    }
+
+    /* Compact ETEC list table container */
+    .etec-ranking-wrap {
+      max-height: 555px;
+      overflow-y: auto;
+    }
+
+    /* Chart containers */
+    .chart-box {
+      position: relative;
+      width: 100%;
+      min-height: 440px;
+      height: 440px;
+    }
+    .chart-box-short {
+      position: relative;
+      width: 100%;
+      min-height: 360px;
+      height: 380px;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      border-bottom: var(--hairline);
+      margin-bottom: var(--space-md);
+    }
+    .tab-btn {
+      min-height: 44px;
+      padding: 0 var(--space-md);
+      background: transparent;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      font-family: var(--font-label);
+      font-size: 0.78rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--on-surface-variant);
+      cursor: pointer;
+      transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+    }
+    .tab-btn:hover {
+      color: var(--on-surface);
+      background: var(--surface-container);
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      font-weight: 600;
+      border-bottom-color: var(--outline);
+    }
+
+    /* Inline drawers / notices (Official Email Notice & Import) */
+    .inline-drawer {
+      background: var(--surface-container);
+      border: 1px solid var(--outline);
+      border-left: 4px solid var(--primary);
+      padding: var(--space-md) var(--space-lg);
+      margin-top: var(--space-md);
+      display: none;
+    }
+    .inline-drawer.open {
+      display: block;
+    }
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+      border-bottom: var(--hairline);
+      padding-bottom: var(--space-sm);
+      margin-bottom: var(--space-md);
+    }
+    .official-letter {
+      background: var(--surface-container-low);
+      border: var(--hairline);
+      padding: var(--space-lg);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-width: 75ch;
+    }
+
+    /* Quick ETEC Selector Strip */
+    .etec-chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      margin-bottom: var(--space-md);
+    }
+    .etec-chip {
+      min-height: 36px;
+      padding: 0.25rem 0.65rem;
+      background: var(--surface-container-low);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      font-size: 0.8125rem;
+      color: var(--on-surface);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+    .etec-chip:hover {
+      background: var(--surface-container);
+      border-color: var(--outline);
+    }
+    .etec-chip.active {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+
+    /* Inline status feedback */
+    .feedback-banner {
+      padding: var(--space-sm) var(--space-md);
+      border-left: 3px solid var(--primary);
+      background: var(--surface-container);
+      font-size: 0.875rem;
+      margin-top: var(--space-sm);
+      display: none;
+    }
+    .feedback-banner.show {
+      display: block;
+    }
+
+    /* Notes list in diligence */
+    .note-item {
+      background: var(--surface-container);
+      border-left: 3px solid var(--outline);
+      padding: var(--space-sm) var(--space-md);
+      margin-bottom: var(--space-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+    }
+
+    /* Footer */
+    .footer-note {
+      border-top: var(--brass-rule);
+      padding: var(--space-lg) 0 var(--space-xl);
+      color: var(--on-surface-variant);
+      font-size: 0.85rem;
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: var(--space-lg);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+      .split-7-5,
+      .split-6-6,
+      .title-band-inner,
+      .footer-note {
+        grid-template-columns: 1fr;
+      }
+      .header-meta-actions {
+        align-items: flex-start;
+      }
+      .header-meta-strip {
+        justify-content: flex-start;
+      }
+    }
+    @media (max-width: 640px) {
+      .page-grid {
+        padding: var(--space-md);
+        gap: var(--space-lg);
+      }
+      .title-band {
+        padding: var(--space-md);
+      }
+      .filter-panel,
+      .leaf-panel {
+        padding: var(--space-md);
+      }
+      .map-canvas-wrap {
+        min-height: 360px;
+        height: 380px;
+      }
+      .chart-box {
+        min-height: 380px;
+        height: 400px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    /* ==========================================================================
+       CABEÇALHO OFICIAL SECITECI & SIPE FLOW MT (DEFINITIVO)
+       ========================================================================== */
+    .title-band {
+      background: #0f1f38 !important;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+      padding: 1.25rem 2rem !important;
+      color: #ffffff !important;
+    }
+
+    .title-band-inner {
+      max-width: 1750px !important;
+      margin: 0 auto !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: flex-end !important;
+      gap: 2rem !important;
+      flex-wrap: wrap !important;
+    }
+
+    /* Coluna Esquerda: Logos + Título */
+    .header-branding-col {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 1.15rem !important;
+    }
+
+    .header-logos-group {
+      display: flex !important;
+      align-items: center !important;
+      gap: 1.25rem !important;
+      flex-shrink: 0 !important;
+    }
+
+    .header-logo-seciteci {
+      height: 90px !important;
+      width: auto !important;
+      object-fit: contain !important;
+      display: block !important;
+    }
+
+    .logo-divider {
+      width: 1.5px !important;
+      height: 65px !important;
+      background: rgba(255, 255, 255, 0.25) !important;
+      display: block !important;
+    }
+
+    .header-logo-sipe {
+      width: 76px !important;
+      height: 76px !important;
+      border-radius: 14px !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      object-fit: cover !important;
+      flex-shrink: 0 !important;
+      display: block !important;
+    }
+
+    .header-main-title {
+      color: #ffffff !important;
+      font-size: 1.35rem !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.04em !important;
+      text-transform: none !important;
+      margin: 0 !important;
+      padding-top: 0.35rem !important;
+      text-align: left !important;
+      line-height: 1.25 !important;
+      font-family: inherit !important;
+    }
+
+    /* Coluna Direita: Metadados + Botões no Canto Inferior Direito */
+    .header-meta-actions {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-end !important;
+      gap: 0.75rem !important;
+      margin-left: auto !important;
+    }
+
+    .header-meta-strip {
+      display: flex !important;
+      align-items: center !important;
+      gap: 1.25rem !important;
+      font-size: 0.72rem !important;
+      color: rgba(255, 255, 255, 0.8) !important;
+      letter-spacing: 0.04em !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      padding: 0.35rem 0.85rem !important;
+      border-radius: 6px !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      white-space: nowrap !important;
+    }
+
+    .header-meta-strip strong {
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+
+    .header-btn-row {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+    }
+
+    .btn-header-outline {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+      border: 1px solid rgba(255, 255, 255, 0.35) !important;
+      color: #ffffff !important;
+      min-height: 38px !important;
+      font-size: 0.8125rem !important;
+      font-weight: 600 !important;
+      padding: 0.4rem 0.95rem !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      text-decoration: none !important;
+    }
+
+    .btn-header-outline:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.18) !important;
+      border-color: #ffffff !important;
+    }
+
+    /* Botão Amarelo Dourado Oficial com Alto Contraste */
+    .btn-header-brass {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      background: #f59e0b !important;
+      border: 1px solid #d97706 !important;
+      color: #0f1f38 !important;
+      min-height: 38px !important;
+      font-size: 0.8125rem !important;
+      font-weight: 700 !important;
+      padding: 0.4rem 1.05rem !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+      transition: all 0.2s ease !important;
+      text-decoration: none !important;
+    }
+
+    .btn-header-brass:hover:not(:disabled) {
+      background: #fbbf24 !important;
+      border-color: #f59e0b !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3) !important;
+    }
+
+    .btn-header-outline svg,
+    .btn-header-brass svg {
+      width: 16px !important;
+      height: 16px !important;
+      flex-shrink: 0 !important;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- CHARTER NAVY TITLE BAND -->
+  <header class="title-band">
+    <div class="title-band-inner">
+      <div class="header-branding-col">
+        <div class="header-logos-group">
+          <!-- Régua Oficial SECITECI / Governo de MT -->
+          <img src="layout_set_logo.png" alt="SECITECI — Governo de Mato Grosso" class="header-logo-seciteci">
+          <span class="logo-divider" aria-hidden="true"></span>
+          <!-- Identidade SIPE Flow MT -->
+          <img src="sipe_flow_icon_oficial.png" alt="SIPE Flow MT" class="header-logo-sipe">
+        </div>
+        <h1 class="header-main-title">MONITORAMENTO REGULATÓRIO DAS 17 ETEC<span style="text-transform:lowercase !important;">'s</span></h1>
+      </div>
+      <div class="header-meta-actions">
+        <div class="header-meta-strip">
+          <span>DATA-BASE: <strong id="data-base-val">20/11/2026</strong></span>
+          <span id="data-source-badge">FONTE: <strong>SIGEDUCA / CEE-MT</strong> (397 ATOS · 795 PROCESSOS SIPE)</span>
+        </div>
+        <div class="header-btn-row">
+          <!-- Botão Sincronizar Dados -->
+          <button type="button" class="btn btn-header-outline" onclick="forcarSincronizacaoPlanilha()" title="Recarregar dados ao vivo da Planilha Oficial">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 2v6h-6"></path>
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+              <path d="M3 22v-6h6"></path>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+            </svg>
+            Sincronizar Dados
+          </button>
+          
+          <!-- Botão Amarelo Dourado Exportar Relatório CSV -->
+          <button type="button" class="btn btn-header-brass" onclick="exportFilteredCsv()" title="Exportar dados filtrados em planilha CSV">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Exportar Relatório CSV
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-grid">
+
+    <!-- INLINE DATA IMPORT DRAWER (hidden by default) -->
+    <section id="import-drawer" class="inline-drawer" aria-label="Importação de dados SIGEDUCA e SIPE">
+      <div class="drawer-header">
+        <div>
+          <span class="section-kicker">Atualização Operacional</span>
+          <h2 style="font-family:var(--font-headline);font-weight:400;font-size:var(--headline-size);margin:0;">Importar Extração dos Robôs (Atos / Processos)</h2>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleImportDrawer()">Fechar Painel</button>
+      </div>
+      <p style="margin:0 0 var(--space-md) 0;font-size:0.875rem;max-width:75ch;">
+        Cole abaixo uma matriz JSON gerada pelos robôs <code>bot-atos-seduc</code> (11 colunas: Código Instituição … Pág.) ou <code>bot-processos-seduc</code> (9 colunas: Instituição … Protocolado Em) para atualizar os indicadores desta sessão e persistir o snapshot.
+      </p>
+      <div class="split-6-6">
+        <div class="field-group">
+          <label class="field-label" for="import-type-select">Tipo de Carga</label>
+          <select id="import-type-select" class="field-control">
+            <option value="atos">Atos Regulatórios (Matriz 11 colunas)</option>
+            <option value="processos">Processos Sistemática / SIPE (Matriz 9 colunas)</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button type="button" class="btn btn-primary" onclick="applyImportedJson()">Aplicar Matriz na Sala de Situação</button>
+          <button type="button" class="btn btn-secondary" id="btn-reset-data" onclick="resetToBaseline(this)">Restaurar Base Referencial</button>
+        </div>
+      </div>
+      <div class="field-group" style="margin-top:var(--space-md);">
+        <label class="field-label" for="import-json-input">Payload JSON (array de arrays com cabeçalho na linha 0)</label>
+        <textarea id="import-json-input" class="field-control" rows="4" style="min-height:110px;font-family:var(--font-label);font-size:0.8rem;" placeholder='[["Código Instituição","Nome da Instituição","Município do Curso","Curso","Ato Regulatório","Situação","Modelo de Documento","Nº Documento","Validade","Data de Publicação","Pág."], ...]'></textarea>
+      </div>
+      <div id="import-feedback" class="feedback-banner" role="status"></div>
+    </section>
+
+    <!-- GLOBAL FILTER BAR -->
+    <section aria-label="Filtros globais do painel">
+      <div class="filter-panel">
+        <div class="field-group">
+          <label class="field-label" for="filter-etec">Unidade Escolar (ETEC)</label>
+          <select id="filter-etec" class="field-control" onchange="onFilterChange()">
+            <option value="TODAS">Todas as 17 ETECs (Visão Estadual)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-risk">Semáforo de Risco</label>
+          <select id="filter-risk" class="field-control" onchange="onFilterChange()">
+            <option value="TODOS">Todos os Níveis de Risco</option>
+            <option value="VERMELHO">Crítico — Vencido sem Protocolo</option>
+            <option value="AMARELO">Atenção — A Vencer / Em Renovação</option>
+            <option value="VERDE">Regular — Conformidade Plena</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-horizon">Horizonte "A Vencer"</label>
+          <select id="filter-horizon" class="field-control" onchange="onFilterChange()">
+            <option value="90">Próximos 90 dias</option>
+            <option value="180" selected>Próximos 180 dias (Padrão)</option>
+            <option value="365">Próximos 365 dias</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filter-search">Busca (Curso, Portaria, Processo)</label>
+          <input id="filter-search" type="text" class="field-control" placeholder="Ex.: Enfermagem, Portaria 123..." oninput="onFilterChange()">
+        </div>
+        <div class="filter-actions">
+          <button type="button" class="btn btn-secondary" onclick="clearAllFilters()" style="width:100%;">
+            <i data-lucide="rotate-ccw" aria-hidden="true" style="width:15px;height:15px;"></i>
+            Limpar Filtros
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- KPI SUMMARY CARDS -->
+    <section aria-label="Indicadores estratégicos consolidados">
+      <div class="kpi-grid">
+<article class="figure-card">
+          <div class="figure-label">Cursos Técnicos Monitorados</div>
+          <div class="figure-value" id="kpi-total-cursos">0</div>
+          <div class="figure-delta" id="kpi-regulares-sub">—</div>
+        </article>
+        <article class="figure-card figure-card--positive">
+          <div class="figure-label">Atos Regulatórios Vigentes</div>
+          <div class="figure-value" id="kpi-unidades">0</div>
+          <div class="figure-delta figure-delta--positive" id="kpi-unidades-sub">—</div>
+        </article>
+        <article class="figure-card">
+          <div class="figure-label">Cursos a Vencer (Até 1 Ano)</div>
+          <div class="figure-value" id="kpi-a-vencer">0</div>
+          <div class="figure-delta figure-delta--warning" id="kpi-a-vencer-sub">—</div>
+        </article>
+        <article class="figure-card figure-card--alert">
+          <div class="figure-label">Cursos com Atos Vencidos</div>
+          <div class="figure-value" id="kpi-vencidos">0</div>
+          <div class="figure-delta figure-delta--error" id="kpi-vencidos-sub">—</div>
+        </article>
+        <article class="figure-card">
+          <div class="figure-label">Processos Ativos no SIPE</div>
+          <div class="figure-value" id="kpi-cobertura">0%</div>
+          <div class="figure-delta" id="kpi-cobertura-sub">—</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- SECTION 01: GEOREFERENCED MAP + 17 ETECs RISK RANKING -->
+    <section aria-labelledby="sec-map-title">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">01 · Panorama Estadual</span>
+          <h2 id="sec-map-title">Mapa de Risco Regulatório das 17 Unidades ETEC</h2>
+          <p class="section-subtitle">
+            Distribuição geográfica da rede estadual. Clique no mapa ou na lista lateral para filtrar o dossiê da unidade.
+          </p>
+        </div>
+      </div>
+
+      <div class="split-7-5">
+        <!-- LEFT: D3 GEOREFERENCED MAP -->
+        <div class="leaf-panel">
+          <div class="map-toolbar">
+            <div>
+              <h3 class="panel-title">Mato Grosso — Distribuição das 17 ETECs</h3>
+              <span class="panel-meta">Classificação Regulatória · Cruzamento Atos × Processos</span>
+            </div>
+            <div class="map-controls">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMapLayer('roads')" id="btn-layer-roads" aria-pressed="true">Eixos BR</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMapLayer('labels')" id="btn-layer-labels" aria-pressed="true">Rótulos</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="zoomMapBy(1.35)" aria-label="Aproximar mapa">+</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="zoomMapBy(0.75)" aria-label="Afastar mapa">−</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="resetMapZoom()">Enquadrar MT</button>
+            </div>
+          </div>
+
+          <div class="map-canvas-wrap" id="map-container">
+            <svg id="mt-map-svg" role="img" aria-label="Mapa georreferenciado das 17 ETECs de Mato Grosso com semáforo de risco regulatório"></svg>
+            <div id="map-tooltip" class="map-tooltip" role="status" aria-live="polite"></div>
+          </div>
+
+          <div class="map-legend">
+            <div class="legend-items">
+              <span class="legend-item"><span class="dot-swatch dot-vermelho"></span> Pendência Crítica (Atos Vencidos)</span>
+              <span class="legend-item"><span class="dot-swatch dot-amarelo"></span> Alerta Preventivo (Vencimento em até 1 Ano)</span>
+              <span class="legend-item"><span class="dot-swatch dot-verde"></span> Regularidade Plena (Atos Vigentes)</span>
+            </div>
+            <span class="panel-meta">Dica: Clique no ponto do município para inspecionar os cursos e processos da unidade.</span>
+          </div>
+        </div>
+
+        <!-- RIGHT: 17 ETECs SEMAPHORE TABLE -->
+        <div class="leaf-panel">
+          <div class="panel-header">
+            <div>
+              <h3 class="panel-title">Matriz de Regularidade da Rede</h3>
+              <span class="panel-meta">Classificação por nível de criticidade · 17 ETECs</span>
+
+          <div class="table-scroll etec-ranking-wrap">
+            <table class="data-table" id="table-etec-semaphore">
+              <thead>
+                <tr>
+                  <th>ETEC / Cód.</th>
+                  <th class="num">Vig.</th>
+                  <th class="num">A Venc.</th>
+                  <th class="num">Venc.</th>
+                  <th class="num">Proc.</th>
+                  <th>Semáforo</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-etec-semaphore"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 02: COMPARATIVE CHARTS -->
+    <section aria-labelledby="sec-charts-title">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">02 · Gestão de Risco Regulatório & Projeção Temporal</span>
+          <h2 id="sec-charts-title">Diagnóstico de Regularidade dos Cursos</h2>
+          <p class="section-subtitle">
+            Panorama consolidado das 17 ETECs e linha do tempo de vigência dos atos no CEE/MT.
+          </p>
+        </div>
+      </div>
+
+      <div class="split-7-5">
+        <div class="leaf-panel">
+          <div class="panel-header">
+            <div>
+              <h3 class="panel-title">Distribuição de Atos por Unidade Escolar (17 ETECs)</h3>
+              <span class="panel-meta">Clique em qualquer barra para selecionar a ETEC correspondente</span>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="chart-etec-comparison"></canvas>
+          </div>
+        </div>
+
+        <div class="leaf-panel">
+          <div class="panel-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+            <div>
+              <h3 class="panel-title">Cronograma de Vencimentos (2025–2029)</h3>
+              <span class="panel-meta">Cursos por semestre de expiração do ato autorizativo</span>
+            </div>
+            <span id="timeline-scope-badge" style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:var(--surface-container-high, #e2e8f0); color:var(--primary, #0f172a); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; border:1px solid var(--outline-variant, #cbd5e1);">
+              REDE ESTADUAL (17 ETECs)
+            </span>
+          </div>
+          <div class="chart-box-short">
+            <canvas id="chart-expiry-timeline"></canvas>
+          </div>
+         <div style="border-top:var(--hairline);padding-top:var(--space-sm);font-size:0.8125rem;color:var(--on-surface-variant);text-align:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto;line-height:1.5;">
+           <strong>Nota de Fiscalização:</strong> Cursos com atos vencidos ou a vencer no horizonte selecionado sem processo ativo protocolado no SIPE acionam alerta preventivo à Coordenadoria e notificação automática à direção da respectiva ETEC.
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 03: CROSS-REFERENCE ATOS x SISTEMÁTICA (PROCESSOS) -->
+    <section aria-labelledby="sec-cross-title">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">03 · Status de Regularização da Rede Técnica</span>
+          <h2 id="sec-cross-title">Monitoramento de Tramitação e Respaldo Legal</h2>
+           <p class="section-subtitle" style="text-align: justify; text-justify: inter-word; -webkit-hyphens: auto; hyphens: auto; line-height: 1.5;">
+            Verificação automática de quais cursos vencidos ou a vencer já possuem processo administrativo protocolado (Autorização, Reconhecimento ou Renovação) em tramitação no CEE/MT ou SECITECI.
+          </p>
+        </div>
+      </div>
+
+      <div class="leaf-panel">
+        <div class="tab-bar" role="tablist" aria-label="Filtro de auditoria cruzada">
+          <button type="button" class="tab-btn active" data-cross-tab="TODOS" onclick="setCrossTab('TODOS', this)">Todos os Riscos & Alertas</button>
+          <button type="button" class="tab-btn" data-cross-tab="DESCOBERTO" onclick="setCrossTab('DESCOBERTO', this)">Descobertos (Sem Protocolo)</button>
+          <button type="button" class="tab-btn" data-cross-tab="COBERTO" onclick="setCrossTab('COBERTO', this)">Cobertos por Processo Ativo</button>
+          <button type="button" class="tab-btn" data-cross-tab="PREVENTIVO" onclick="setCrossTab('PREVENTIVO', this)">Preventivos (A Vencer)</button>
+        </div>
+
+        <div class="table-scroll" style="max-height:420px;overflow-y:auto;">
+          <table class="data-table">
+            <thead>
+                <tr>
+                <th>ETEC</th>
+                <th>Curso Técnico</th>
+                <th>Documento / Ato</th>
+                <th>Validade</th>
+                <th>Situação do Ato</th>
+                <th>Ação Regulatória Recomendada</th>
+                <th>Diagnóstico</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-cross-reference"></tbody>
+          </table>
+        </div>
+
+        <!-- INLINE OFFICIAL COMMUNICATION & PROTOCOL SIMULATION DRAWER -->
+        <div id="notice-drawer" class="inline-drawer" aria-live="polite">
+          <div class="drawer-header">
+            <div>
+              <span class="section-kicker">Minuta Oficial · Coordenadoria de Fiscalização</span>
+              <h3 id="notice-drawer-title" style="font-family:var(--font-headline);font-weight:700;font-size:var(--subhead-size);margin:0;">Comunicado de Vencimento de Ato Autorizativo</h3>
+            </div>
+            <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="copyOfficialNotice()">
+                <i data-lucide="copy" aria-hidden="true" style="width:14px;height:14px;"></i>
+                Copiar Texto Oficial
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="closeNoticeDrawer()">Fechar</button>
+            </div>
+          </div>
+          <div id="notice-letter-body" class="official-letter"></div>
+          <div id="notice-copy-feedback" class="feedback-banner" role="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 04: DETAILED UNIT ANALYTICAL VIEW (ETEC DOSSIER) -->
+    <section aria-labelledby="sec-dossier-title">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">04 · Visão Analítica Detalhada por Unidade Escolar</span>
+          <h2 id="sec-dossier-title">Dossiê Regulatório Individual da ETEC</h2>
+          <p class="section-subtitle">
+            Inspeção granular dos 11 campos de Atos Regulatórios e 9 campos oficiais de Processos Administrativos do SIGEDUCA/SIPE, além do registro de diligências da Coordenadoria de Fiscalização.
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick selector strip across all 17 ETECs -->
+      <div class="etec-chip-grid" id="etec-chip-strip" role="group" aria-label="Seleção rápida de ETEC"></div>
+
+      <div class="leaf-panel" id="dossier-panel">
+        <div class="panel-header">
+          <div>
+            <span class="mono-code" id="dossier-code-meta">CÓDIGO SIGEDUCA — · MESORREGIÃO —</span>
+            <h3 class="panel-title" id="dossier-etec-name" style="font-size:var(--headline-size);font-weight:400;margin-top:2px;">Selecione uma ETEC</h3>
+          </div>
+          <div style="display:flex;gap:var(--space-sm);align-items:center;flex-wrap:wrap;" id="dossier-status-badges"></div>
+        </div>
+
+        <!-- Mini KPI strip inside unit dossier -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit, minmax(min(170px, 100%), 1fr));">
+          <div style="background:var(--surface-container);padding:var(--space-sm) var(--space-md);border-left:3px solid var(--primary);">
+            <div class="figure-label">Cursos Técnicos</div>
+            <div class="figure-value" id="unit-kpi-total" style="font-size:1.5rem;">0</div>
+          </div>
+          <div style="background:var(--surface-container);padding:var(--space-sm) var(--space-md);border-left:3px solid var(--secondary);">
+            <div class="figure-label">Vigentes Regulares</div>
+            <div class="figure-value" id="unit-kpi-vigentes" style="font-size:1.5rem;">0</div>
+          </div>
+          <div style="background:var(--surface-container);padding:var(--space-sm) var(--space-md);border-left:3px solid var(--warning);">
+            <div class="figure-label">A Vencer</div>
+            <div class="figure-value" id="unit-kpi-avencer" style="font-size:1.5rem;">0</div>
+          </div>
+          <div style="background:var(--surface-container);padding:var(--space-sm) var(--space-md);border-left:3px solid var(--error);">
+            <div class="figure-label">Vencidos</div>
+            <div class="figure-value" id="unit-kpi-vencidos" style="font-size:1.5rem;">0</div>
+          </div>
+          <div style="background:var(--surface-container);padding:var(--space-sm) var(--space-md);border-left:3px solid var(--data-4);">
+            <div class="figure-label">Processos SIPE</div>
+            <div class="figure-value" id="unit-kpi-processos" style="font-size:1.5rem;">0</div>
+          </div>
+        </div>
+
+        <div class="tab-bar" role="tablist" aria-label="Abas do dossiê da unidade">
+          <button type="button" class="tab-btn active" data-dossier-tab="atos" onclick="setDossierTab('atos', this)">Atos Regulatórios (SIGEDUCA)</button>
+          <button type="button" class="tab-btn" data-dossier-tab="processos" onclick="setDossierTab('processos', this)">Processos na Sistemática (SIPE)</button>
+          <button type="button" class="tab-btn" data-dossier-tab="diligencias" onclick="setDossierTab('diligencias', this)">Diligências & Despachos (<span id="diligencias-count">0</span>)</button>
+        </div>
+
+        <!-- TAB 1: ATOS -->
+        <div id="dossier-tab-atos">
+          <div class="table-scroll" style="max-height:420px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Município do Curso</th>
+                  <th>Curso Técnico</th>
+                  <th>Ato Regulatório</th>
+                  <th>Modelo / Nº Documento</th>
+                  <th>Validade</th>
+                  <th>Publicação (Pág.)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-dossier-atos"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 2: PROCESSOS -->
+        <div id="dossier-tab-processos" style="display:none;">
+          <div class="table-scroll" style="max-height:420px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Ano</th>
+                  <th>Processo</th>
+                  <th>Tipo de Ato</th>
+                  <th>Cidade</th>
+                  <th>Situação</th>
+                  <th>Setor Atual</th>
+                  <th>Responsável</th>
+                  <th>Protocolado Em</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-dossier-processos"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 3: DILIGÊNCIAS -->
+        <div id="dossier-tab-diligencias" style="display:none;">
+          <div class="split-6-6">
+            <div>
+              <h4 style="font-family:var(--font-headline);font-weight:700;margin:0 0 var(--space-sm) 0;">Registrar Nova Diligência ou Encaminhamento</h4>
+              <div class="field-group" style="margin-bottom:var(--space-sm);">
+                <label class="field-label" for="note-type">Tipo de Providência</label>
+                <select id="note-type" class="field-control">
+                  <option value="Notificação à Mantenedora">Notificação à Mantenedora (SECITECI)</option>
+                  <option value="Encaminhamento ao CEE/MT">Encaminhamento ao Conselho Estadual de Educação (CEE/MT)</option>
+                  <option value="Vistoria In Loco">Vistoria Técnica In Loco</option>
+                  <option value="Conferência de Protocolo SIPE">Conferência de Protocolo SIPE</option>
+                </select>
+              </div>
+              <div class="field-group" style="margin-bottom:var(--space-sm);">
+                <label class="field-label" for="note-text">Parecer / Observação da Fiscalização</label>
+                <textarea id="note-text" class="field-control" rows="3" style="min-height:92px;" placeholder="Descreva a providência adotada, número de ofício ou prazo estipulado à unidade..."></textarea>
+              </div>
+              <button type="button" class="btn btn-primary" onclick="addDiligenceNote()">Registrar Diligência na Unidade</button>
+              <div id="note-feedback" class="feedback-banner" role="status"></div>
+            </div>
+            <div>
+              <h4 style="font-family:var(--font-headline);font-weight:700;margin:0 0 var(--space-sm) 0;">Histórico de Fiscalização da ETEC</h4>
+              <div id="diligence-notes-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER / METHODOLOGY & ARCHITECTURE -->
+    <footer class="footer-note">
+      <div>
+        <strong style="color:var(--on-surface);">Metodologia SIPE Flow MT & Arquitetura de Coleta:</strong>
+        Os dados estruturais seguem o modelo oficial dos robôs <code>bot-atos-seduc</code> (extração paginada de <code>wmceeinfinstensino.aspx</code> mantendo o ato mais recente por par Município + Curso Técnico) e <code>bot-processos-seduc</code> (9 colunas oficiais do SIPE), integrados via Google Apps Script para disparo automático de alertas no Google Chat e comunicados formais por e-mail da Coordenadoria de Fiscalização (<code>coordenadoriadefiscalizacao@secitec.mt.gov.br</code>). Os registros exibidos inicialmente constituem uma base referencial operacional calibrada para a data-base de 18/11/2026 (incluindo o caso-teste da Portaria 123/2024 de Rondonópolis), podendo ser substituídos a qualquer momento pelo botão <em>Importar Dados SIGEDUCA</em>.
+      </div>
+      <div>
+        <strong style="color:var(--on-surface);">Fontes Documentais:</strong>
+        Especificação técnica dos scripts <code>EXTRAIR ATOS</code>, <code>EXTRAIR PROCESSOS</code>, <code>BACKUP APPSCRIPT</code>, <code>aqui.txt</code> e <code>olha vc.txt</code> (SECITECI/MT · SEDUC-MT). Geometria vetorial de Mato Grosso baseada em coordenadas geodésicas IBGE de domínio público.
+      </div>
+    </footer>
+
+  </main>
+
+  <api-shim></api-shim>
+
+  <script>
     // =========================================================================
+    // 1. REFERENCE DATE & OFFICIAL 17 ETECs DIRECTORY (FROM MAPA_ETECS)
+    // =========================================================================
+    const REFERENCE_DATE = new Date(); // Data dinâmica do dia da consulta
+
+    const ETECS_MASTER = [
+      { cod: 5002, key: `AGUA BOA`, nome: `ETEC de Água Boa`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE AGUA BOA`, cidade: `ÁGUA BOA`, regiao: `Nordeste`, lat: -14.0511, lng: -52.1603 },
+      { cod: 617,  key: `ALTA FLORESTA`, nome: `ETEC de Alta Floresta`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE ALTA FLORESTA`, cidade: `ALTA FLORESTA`, regiao: `Norte`, lat: -9.8756, lng: -56.0861 },
+      { cod: 1437, key: `BARRA DO GARCAS`, nome: `ETEC de Barra do Garças`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE BARRA DO GARCAS`, cidade: `BARRA DO GARÇAS`, regiao: `Nordeste`, lat: -15.8900, lng: -52.2567 },
+      { cod: 4858, key: `CACERES`, nome: `ETEC de Cáceres`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE CACERES`, cidade: `CÁCERES`, regiao: `Sudoeste`, lat: -16.0706, lng: -57.6789 },
+      { cod: 2392, key: `CAMPO VERDE`, nome: `ETEC de Campo Verde`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE CAMPO VERDE`, cidade: `CAMPO VERDE`, regiao: `Sudeste`, lat: -15.5453, lng: -55.1625 },
+      { cod: 3905, key: `CUIABA`, nome: `ETEC de Cuiabá`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE CUIABA`, cidade: `CUIABÁ`, regiao: `Centro-Sul`, lat: -15.6014, lng: -56.0979 },
+      { cod: 321,  key: `DIAMANTINO`, nome: `ETEC de Diamantino`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE DIAMANTINO`, cidade: `DIAMANTINO`, regiao: `Centro-Sul`, lat: -14.4086, lng: -56.4461 },
+      { cod: 5009, key: `JUARA`, nome: `ETEC de Juara`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE JUARA`, cidade: `JUARA`, regiao: `Norte`, lat: -11.2589, lng: -57.5228 },
+      { cod: 3337, key: `LUCAS DO RIO VERDE`, nome: `ETEC de Lucas do Rio Verde`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE LUCAS DO RIO VERDE`, cidade: `LUCAS DO RIO VERDE`, regiao: `Norte`, lat: -13.0500, lng: -55.9042 },
+      { cod: 5008, key: `MATUPA`, nome: `ETEC de Matupá`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE MATUPA`, cidade: `MATUPÁ`, regiao: `Norte`, lat: -10.1753, lng: -54.9328 },
+      { cod: 1621, key: `POXOREU`, nome: `ETEC de Poxoréu`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE POXOREU`, cidade: `POXORÉU`, regiao: `Sudeste`, lat: -15.8367, lng: -54.3917 },
+      { cod: 5003, key: `PRIMAVERA DO LESTE`, nome: `ETEC de Primavera do Leste`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE PRIMAVERA DO LESTE`, cidade: `PRIMAVERA DO LESTE`, regiao: `Sudeste`, lat: -15.5561, lng: -54.2961 },
+      { cod: 867,  key: `RONDONOPOLIS`, nome: `ETEC de Rondonópolis`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, cidade: `RONDONÓPOLIS`, regiao: `Sudeste`, lat: -16.4706, lng: -54.6356 },
+      { cod: 656,  key: `SINOP`, nome: `ETEC de Sinop`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE SINOP`, cidade: `SINOP`, regiao: `Norte`, lat: -11.8642, lng: -55.5025 },
+      { cod: 5010, key: `SORRISO`, nome: `ETEC de Sorriso`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE SORRISO`, cidade: `SORRISO`, regiao: `Norte`, lat: -12.5425, lng: -55.7211 },
+      { cod: 657,  key: `TANGARA DA SERRA`, nome: `ETEC de Tangará da Serra`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE TANGARA DA SERRA`, cidade: `TANGARÁ DA SERRA`, regiao: `Sudoeste`, lat: -14.6229, lng: -57.4933 },
+      { cod: 5107, key: `VARZEA GRANDE`, nome: `ETEC de Várzea Grande`, nomeCompleto: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, cidade: `VÁRZEA GRANDE`, regiao: `Centro-Sul`, lat: -16.0800, lng: -56.2200 }
+    ];
+
+    // Public-domain simplified Mato Grosso border polygon [lng, lat] + neighbors + BR highways
+    const MT_GEOJSON = {
+      type: `FeatureCollection`,
+      features: [{
+        type: `Feature`,
+        properties: { name: `Mato Grosso` },
+        geometry: {
+          type: `Polygon`,
+          coordinates: [[
+            [-61.63, -8.78], [-60.92, -8.25], [-60.15, -7.42], [-58.85, -7.36],
+            [-58.12, -7.85], [-57.62, -8.92], [-56.60, -9.28], [-55.15, -9.45],
+            [-53.75, -9.42], [-52.65, -9.48], [-51.40, -9.68], [-50.55, -9.85],
+            [-50.58, -11.05], [-50.65, -12.15], [-50.68, -13.10], [-50.88, -14.05],
+            [-51.45, -14.85], [-51.95, -15.42], [-52.26, -15.90], [-52.85, -16.75],
+            [-53.25, -17.85], [-54.15, -17.98], [-54.95, -17.55], [-55.85, -17.42],
+            [-56.75, -17.55], [-57.55, -17.88], [-57.82, -17.15], [-58.35, -16.32],
+            [-59.35, -16.28], [-60.18, -15.35], [-60.42, -14.15], [-60.12, -13.10],
+            [-59.98, -12.55], [-60.65, -11.75], [-61.28, -10.85], [-61.55, -9.65],
+            [-61.63, -8.78]
+          ]]
+        }
+      }]
+    };
+
+    const MT_HIGHWAYS = [
+      { nome: `BR-163 (Eixo Norte-Sul)`, coords: [[-54.64, -16.47], [-55.16, -15.55], [-56.10, -15.60], [-56.45, -14.41], [-55.90, -13.05], [-55.72, -12.54], [-55.50, -11.86], [-54.93, -10.18]] },
+      { nome: `BR-070 / BR-158 (Leste-Oeste)`, coords: [[-57.68, -16.07], [-56.10, -15.60], [-55.16, -15.55], [-54.30, -15.56], [-52.26, -15.89], [-52.16, -14.05]] },
+      { nome: `MT-364 / Sudoeste`, coords: [[-56.45, -14.41], [-57.49, -14.62], [-57.68, -16.07]] }
+    ];
+
+    const NEIGHBOR_LABELS = [
+      { text: `AM`, lng: -59.5, lat: -7.1 },
+      { text: `PA`, lng: -54.0, lat: -8.6 },
+      { text: `TO`, lng: -49.8, lat: -11.8 },
+      { text: `GO`, lng: -51.2, lat: -16.6 },
+      { text: `MS`, lng: -55.5, lat: -18.35 },
+      { text: `RO`, lng: -61.8, lat: -11.5 },
+      { text: `BOLÍVIA`, lng: -60.6, lat: -16.8 }
+    ];
+
+    // =========================================================================
+    // 2. BASELINE OPERATIONAL DATASET (SIGEDUCA 11-COL ATOS + SIPE 9-COL PROC)
+    // =========================================================================
+
+    // =========================================================================
+    // INTEGRAÇÃO COM A PLANILHA OFICIAL GOOGLE (TEMPO REAL)
+    // =========================================================================
+    const URL_PLANILHA_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS9-yb5ewD5LobCyj82S4yLTtUINPWk9bx8HngF4flfJ3xT4tQhrkRm4_wM4M8EGFhQkedrfLLqMvI3/pub?gid=0&single=true&output=csv";
+    const URL_PLANILHA_PROCESSOS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsP6XBz8M3xroIJIrQesLCfo-IeQgsgcBqurR7_6hGv-cGSIZEbsTVi54N79xaKNOVGYXGq2SHxwe5/pub?gid=0&single=true&output=csv";
+
+
+
+    function parseCSVLine(text) {
+      const result = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"') {
+          inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+          result.push(cur.trim());
+          cur = '';
+        } else {
+          cur += c;
+        }
+      }
+      result.push(cur.trim());
+      return result;
+    }
+
+    function normalizeStr(text) {
+      return String(text || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .trim();
+    }
+
+    function limparNomeCurso(str) {
+      if (!str) return 'CURSO TÉCNICO';
+      let limpo = str.replace(/["']/g, '').trim();
+      if (limpo.includes('-')) {
+        const partes = limpo.split('-');
+        limpo = partes[partes.length - 1];
+      } else if (limpo.includes('>')) {
+        const partes = limpo.split('>');
+        limpo = partes[partes.length - 1];
+      }
+      return limpo.replace(/["']/g, '').trim().toUpperCase();
+    }
+
+   function isEducacaoProfissionalProcesso(tipoAto) {
+  if (!tipoAto) return false;
+  const t = normalizeStr(tipoAto);
+
+  // 1. Bloqueio explícito de Educação Básica pura (Fundamental / Infantil / Médio Regular)
+  const isBasicaPura = (t.includes('FUNDAMENTAL') || t.includes('INFANTIL') || t.includes('MEDIO REGULAR')) && 
+                       !t.includes('PROFISSIONAL') && !t.includes('FORA DE SEDE') && !t.includes('SABERES');
+  if (isBasicaPura) return false;
+
+  // 2. REGRA 1: Ter o termo "PROFISSIONAL" no assunto (Cursos Técnicos, Habilitações, Especializações)
+  if (t.includes('PROFISSIONAL')) return true;
+
+  // 3. REGRA 2: Oferta Fora de Sede (Articulado Concomitante e Subsequente)
+  if (t.includes('FORA DE SEDE') && (t.includes('CONCOMITANTE') || t.includes('SUBSEQUENTE') || t.includes('ARTICULADO'))) return true;
+  if (t.includes('AUTORIZACAO CURSO FORA DE SEDE')) return true;
+
+  // 4. REGRA 3: Autorização para Turmas Especiais (turma única/exceção)
+  if (t.includes('TURMAS ESPECIAIS') || t.includes('TURMA ESPECIAL')) return true;
+
+  // 5. REGRA 4: Credenciamento Unidade Certificadora (Reconhecimento de Saberes e de Competências)
+  if (t.includes('RECONHECIMENTO DE SABERES') || t.includes('UNIDADE CERTIFICADORA') || t.includes('SABERES E DE COMPETENCIAS')) return true;
+
+  return false;
+}
+    
+async function carregarDadosPlanilhaOnline() {
+  let carregouAtos = false;
+  let carregouProcessos = false;
+
+  // =========================================================================
+  // PARTE A: CARREGAMENTO DOS ATOS (377 CURSOS)
+  // =========================================================================
+  if (URL_PLANILHA_CSV && URL_PLANILHA_CSV.trim() !== '') {
+    try {
+      console.log('⏳ SIPE Flow: Buscando atos da planilha Google online...');
+      const resp = await fetch(URL_PLANILHA_CSV, { cache: 'no-store' });
+      if (resp.ok) {
+        const csvText = await resp.text();
+        const rawLines = csvText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (rawLines.length >= 2) {
+          const header = parseCSVLine(rawLines[0]).map(h => normalizeStr(h));
+          let idxCod = header.findIndex(h => h.includes('CODIGO') || h.includes('COD'));
+          let idxEscola = header.findIndex(h => h.includes('NOME DA INSTITUICAO') || h.includes('ESCOLA'));
+          let idxMun = header.findIndex(h => h.includes('MUNICIPIO'));
+          let idxCurso = header.findIndex(h => h === 'CURSO' || (h.includes('CURSO') && !h.includes('MUNICIPIO') && !h.includes('CIDADE')));
+          let idxAto = header.findIndex(h => h.includes('ATO'));
+          let idxSit = header.findIndex(h => h.includes('SITUACAO'));
+          let idxModelo = header.findIndex(h => h.includes('MODELO'));
+          let idxDoc = header.findIndex(h => h.includes('DOCUMENTO') || h.includes('DOC') || h.includes('NUMERO'));
+          let idxVal = header.findIndex(h => h.includes('VALIDADE'));
+          let idxPub = header.findIndex(h => h.includes('PUBLICACAO'));
+          let idxPag = header.findIndex(h => h.includes('PAG'));
+
+          if (idxCod === -1) idxCod = 0;
+          if (idxEscola === -1) idxEscola = 1;
+          if (idxMun === -1) idxMun = 2;
+          if (idxCurso === -1) idxCurso = 3;
+          if (idxAto === -1) idxAto = 4;
+          if (idxSit === -1) idxSit = 5;
+          if (idxModelo === -1) idxModelo = 6;
+          if (idxDoc === -1) idxDoc = 7;
+          if (idxVal === -1) idxVal = 8;
+          if (idxPub === -1) idxPub = 9;
+          if (idxPag === -1) idxPag = 10;
+
+          const novosAtos = [];
+          for (let i = 1; i < rawLines.length; i++) {
+            const col = parseCSVLine(rawLines[i]);
+            if (col.length < 2) continue;
+            const cursoBruto = col[idxCurso] || '';
+            if (!cursoBruto) continue;
+
+            let cod = parseInt(col[idxCod], 10) || 0;
+            let mun = (col[idxMun] || '').replace(/["']/g, '').trim().toUpperCase();
+            let escola = (col[idxEscola] || '').replace(/["']/g, '').trim();
+
+            if (typeof ETECS_MASTER !== 'undefined') {
+              let etec = null;
+              if (cod > 0) etec = ETECS_MASTER.find(e => e.cod === cod);
+              if (!etec && mun) {
+                const mNorm = normalizeStr(mun);
+                etec = ETECS_MASTER.find(e => normalizeStr(e.key) === mNorm || normalizeStr(e.cidade) === mNorm || mNorm.includes(normalizeStr(e.key)));
+              }
+              if (!etec && escola) {
+                const eNorm = normalizeStr(escola);
+                etec = ETECS_MASTER.find(e => eNorm.includes(normalizeStr(e.key)));
+              }
+              if (etec) {
+                cod = etec.cod;
+                if (!mun) mun = etec.cidade;
+                if (!escola) escola = etec.nomeCompleto;
+              }
+            }
+            if (cod === 0) cod = 5002;
+
+            novosAtos.push({
+              cod: cod,
+              escola: escola || ('ESCOLA TÉCNICA ESTADUAL (' + mun + ')'),
+              municipio: mun || 'MATO GROSSO',
+              curso: limparNomeCurso(cursoBruto),
+              ato: (col[idxAto] || 'AUTORIZAÇÃO').replace(/["']/g, '').trim(),
+              situacao: (col[idxSit] || 'REGULAR').replace(/["']/g, '').trim(),
+              modelo: (col[idxModelo] || 'Portaria / Resolução').replace(/["']/g, '').trim(),
+              doc: (col[idxDoc] || 'Ato CEE/MT').replace(/["']/g, '').trim(),
+              validade: (col[idxVal] || '').replace(/["']/g, '').trim(),
+              pub: (col[idxPub] || '—').replace(/["']/g, '').trim(),
+              pag: (col[idxPag] || '—').replace(/["']/g, '').trim()
+            });
+          }
+
+          if (novosAtos.length > 0) {
+            console.log('✅ SIPE Flow: ' + novosAtos.length + ' atos regulatórios carregados do Google Sheets!');
+            appState.atos = novosAtos;
+            carregouAtos = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('❌ Erro ao buscar atos online:', err);
+    }
+  }
+
+ // =========================================================================
+  // PARTE B: CARREGAMENTO DOS PROCESSOS (FILTRADO POR EDUCAÇÃO PROFISSIONAL ATIVA)
+  // =========================================================================
+  if (URL_PLANILHA_PROCESSOS_CSV && URL_PLANILHA_PROCESSOS_CSV.trim() !== '' && !URL_PLANILHA_PROCESSOS_CSV.includes('SEU_LINK')) {
+    try {
+      console.log('⏳ SIPE Flow: Buscando processos do SIPE da planilha Google online...');
+      const respP = await fetch(URL_PLANILHA_PROCESSOS_CSV, { cache: 'no-store' });
+      if (respP.ok) {
+        const csvP = await respP.text();
+        const rawLinesP = csvP.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (rawLinesP.length >= 2) {
+          const headerP = parseCSVLine(rawLinesP[0]).map(h => normalizeStr(h));
+          let idxInst = headerP.findIndex(h => h.includes('INSTITUICAO') || h.includes('ESCOLA') || h.includes('UNIDADE'));
+          let idxAno = headerP.findIndex(h => h.includes('ANO'));
+          let idxProc = headerP.findIndex(h => h.includes('PROCESSO') || h.includes('NUMERO') || h.includes('PROTOCOLO'));
+          let idxTipo = headerP.findIndex(h => h.includes('TIPO') || h.includes('ATO') || h.includes('ASSUNTO') || h.includes('DESCRICAO'));
+          let idxCid = headerP.findIndex(h => h.includes('CIDADE') || h.includes('MUNICIPIO'));
+          let idxSit = headerP.findIndex(h => h.includes('SITUACAO') || h.includes('STATUS'));
+          let idxSet = headerP.findIndex(h => h.includes('SETOR') || h.includes('ORGAO') || h.includes('LOTACAO'));
+          let idxResp = headerP.findIndex(h => h.includes('RESPONSAVEL') || h.includes('TECNICO'));
+          let idxData = headerP.findIndex(h => h.includes('DATA') || h.includes('PROTOCOLADO') || h.includes('ENTRADA'));
+
+          if (idxInst === -1) idxInst = 0;
+          if (idxAno === -1) idxAno = 1;
+          if (idxProc === -1) idxProc = 2;
+          if (idxTipo === -1) idxTipo = 3;
+          if (idxCid === -1) idxCid = 4;
+          if (idxSit === -1) idxSit = 5;
+          if (idxSet === -1) idxSet = 6;
+          if (idxResp === -1) idxResp = 7;
+          if (idxData === -1) idxData = 8;
+
+          const novosProcessos = [];
+
+          for (let i = 1; i < rawLinesP.length; i++) {
+            const col = parseCSVLine(rawLinesP[i]);
+            if (col.length < 3) continue;
+
+            const instTexto = (col[idxInst] || '').trim();
+            const ano = (col[idxAno] || '').replace(/["']/g, '').trim();
+            const numProc = (col[idxProc] || '').replace(/["']/g, '').trim();
+            const tipoAto = (col[idxTipo] || '').replace(/["']/g, '').trim();
+            const situacao = (col[idxSit] || '').replace(/["']/g, '').trim();
+            const cidade = (col[idxCid] || '').replace(/["']/g, '').trim();
+            const setor = (col[idxSet] || 'CEE/MT').replace(/["']/g, '').trim();
+            const responsavel = (col[idxResp] || '—').replace(/["']/g, '').trim();
+            const protocoladoEm = (col[idxData] || '—').replace(/["']/g, '').trim();
+
+            if (!numProc && !tipoAto) continue;
+
+            // 1. FILTRO DE STATUS: Deve ser ATIVO (RECEBER PROCESSO, EM ANDAMENTO, CADASTRANDO)
+            if (!isActiveProcessStatus(situacao)) {
+              continue;
+            }
+
+            // 2. FILTRO DE CONTEÚDO: Estritamente Educação Profissional conforme as 4 regras
+            if (!isEducacaoProfissionalProcesso(tipoAto)) {
+              continue;
+            }
+
+            // 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC (COM POLOS E EXTENSÕES)
+            let codEtec = 0;
+            const matchCod = instTexto.match(/\b(5002|617|1437|4858|2392|3905|867|321|5009|3337|5008|1621|5003|5010|657|5107|656|96)\b/);
+            if (matchCod) {
+              codEtec = parseInt(matchCod[1], 10);
+              if (codEtec === 96) codEtec = 867; // 96 = Rondonópolis legado
+            } else if (typeof ETECS_MASTER !== 'undefined') {
+              const instNorm = normalizeStr(instTexto);
+              const cidNorm = normalizeStr(cidade);
+              const linhaNorm = instNorm + ' ' + cidNorm;
+
+              // 3.1 Busca Direta nas 17 Sedes
+              const etec = ETECS_MASTER.find(e => {
+                const k = normalizeStr(e.key);
+                return instNorm.includes(k) || cidNorm.includes(k) || normalizeStr(e.cidade) === cidNorm;
+              });
+
+              if (etec) {
+                codEtec = etec.cod;
+              } else {
+                // 3.2 Mapeamento dos Polos e Municípios de Extensão das ETECs
+                if (linhaNorm.includes('PEIXOTO') || linhaNorm.includes('GUARANTA') || linhaNorm.includes('TERRA NOVA')) {
+                  codEtec = 5008; // Polo Matupá
+                } else if (linhaNorm.includes('XAVANTINA') || linhaNorm.includes('ARAGUAIA') || linhaNorm.includes('CANARANA')) {
+                  codEtec = 1437; // Polo Barra do Garças
+                } else if (linhaNorm.includes('PARANATINGA') || linhaNorm.includes('CAMPO VERDE')) {
+                  codEtec = 5003; // Polo Primavera do Leste
+                } else if (linhaNorm.includes('CLAUDIA') || linhaNorm.includes('VERA') || linhaNorm.includes('SANTA CARMEM') || linhaNorm.includes('COLIDER')) {
+                  codEtec = 656;  // Polo Sinop
+                } else if (linhaNorm.includes('PONTES E LACERDA') || linhaNorm.includes('JAURU') || linhaNorm.includes('MIRASSOL')) {
+                  codEtec = 4858; // Polo Cáceres
+                } else if (linhaNorm.includes('ARENAPOLIS') || linhaNorm.includes('NOVA OLIMPIA') || linhaNorm.includes('BARRA DO BUGRES')) {
+                  codEtec = 657;  // Polo Tangará da Serra
+                } else if (linhaNorm.includes('TAPURAH') || linhaNorm.includes('IPIRANGA') || linhaNorm.includes('ITANHANGA')) {
+                  codEtec = 3337; // Polo Lucas do Rio Verde
+                } else if (linhaNorm.includes('NOVA MUTUM') || linhaNorm.includes('NOVA UBIRATA')) {
+                  codEtec = 5010; // Polo Sorriso
+                } else if (linhaNorm.includes('ALTO ARAGUAIA') || linhaNorm.includes('GUIRATINGA') || linhaNorm.includes('PEDRA PRETA') || linhaNorm.includes('JACIARA')) {
+                  codEtec = 867;  // Polo Rondonópolis
+                } else if (linhaNorm.includes('BRASNORTE') || linhaNorm.includes('NOVO HORIZONTE') || linhaNorm.includes('TABAPORA')) {
+                  codEtec = 5009; // Polo Juara
+                } else if (linhaNorm.includes('PARANITA') || linhaNorm.includes('APIACAS') || linhaNorm.includes('MONTE VERDE')) {
+                  codEtec = 617;  // Polo Alta Floresta
+                } else if (linhaNorm.includes('QUERENCIA') || linhaNorm.includes('CANABRAVA') || linhaNorm.includes('CONFRESA') || linhaNorm.includes('RIBEIRAO CASCALHEIRA')) {
+                  codEtec = 5002; // Polo Água Boa
+                } else if (linhaNorm.includes('NOBRES') || linhaNorm.includes('ROSARIO OESTE') || linhaNorm.includes('ALTO PARAGUAI')) {
+                  codEtec = 321;  // Polo Diamantino
+                } else {
+                  codEtec = 3905; // Cuiabá polo estadual
+                }
+              }
+            }
+
+            // Garante que nenhum processo ativo da Educação Profissional fique de fora
+            if (codEtec === 0) codEtec = 3905;
+
+            novosProcessos.push({
+              cod: codEtec,
+              instituicao: instTexto || ('ETEC ' + cidade),
+              ano: ano || (new Date().getFullYear().toString()),
+              processo: numProc,
+              tipoAto: tipoAto,
+              cidade: cidade || 'MATO GROSSO',
+              situacao: situacao,
+              setor: setor,
+              responsavel: responsavel,
+              protocoladoEm: protocoladoEm
+            });
+          }
+
+          if (novosProcessos.length > 0) {
+            console.log('✅ SIPE Flow: ' + novosProcessos.length + ' processos ATIVOS da Educação Profissional carregados do SIPE!');
+            appState.processos = novosProcessos;
+            carregouProcessos = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('❌ Erro ao buscar processos online:', err);
+    }
+  }
+
+
+  // Se ao menos uma das fontes foi carregada, atualizamos o rótulo de fonte
+  if (carregouAtos || carregouProcessos) {
+    const totalA = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
+    const totalP = (appState.processos && appState.processos.length) ? appState.processos.length : 0;
+    appState.customSourceLabel = 'SIGEDUCA / CEE-MT (' + totalA + ' ATOS · ' + totalP + ' PROCESSOS ATIVOS)';
+    return true;
+  }
+
+  return false;
+}
+    
+    async function forcarSincronizacaoPlanilha() {
+      const badge = document.getElementById('data-source-badge');
+      if (badge) {
+        badge.innerHTML = 'FONTE: <strong>Atualizando dados com o repositório oficial...</strong>';
+      }
+      const ok = await carregarDadosPlanilhaOnline();
+      
+      const totalAtos = (appState.atos && appState.atos.length) ? appState.atos.length : 397;
+      const totalProc = (appState.processos && appState.processos.length) ? appState.processos.length : 795;
+      
+      if (badge) {
+        badge.innerHTML = 'FONTE: <strong>SIGEDUCA / CEE-MT</strong> (' + totalAtos + ' ATOS · ' + totalProc + ' PROCESSOS SIPE)';
+      }
+
+      if (ok) {
+        renderAll();
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+        alert('✅ Sincronização concluída com sucesso!\n' + totalAtos + ' cursos regulatórios atualizados diretamente da Planilha Google.');
+      } else {
+        alert('⚠️ Não foi possível sincronizar com a planilha online no momento. Mantendo base referencial.');
+        renderAll();
+      }
+    }
+
+
+    function buildBaselineAtos() {
+      const rows = [
+        // Rondonópolis (867) - includes exact test case Portaria 123/2024 (expired 09/11/2026)
+        { cod: 867, escola: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, municipio: `RONDONOPOLIS`, curso: `TECNICO EM SEGURANCA DO TRABALHO`, ato: `AUTORIZACAO`, situacao: `VENCIDO`, modelo: `Portaria`, doc: `Portaria 123/2024`, validade: `14/08/2024 a 09/11/2026`, pub: `16/08/2024`, pag: `12` },
+        { cod: 867, escola: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, municipio: `RONDONOPOLIS`, curso: `TECNICO EM ENFERMAGEM`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `VENCIDO`, modelo: `Resolução CEE/MT`, doc: `Resolução 418/2021`, validade: `10/10/2021 a 10/10/2026`, pub: `14/10/2021`, pag: `18` },
+        { cod: 867, escola: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, municipio: `RONDONOPOLIS`, curso: `TECNICO EM LOGISTICA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 212/2024`, validade: `05/04/2024 a 05/04/2028`, pub: `08/04/2024`, pag: `09` },
+        { cod: 867, escola: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, municipio: `RONDONOPOLIS`, curso: `TECNICO EM ELETROTECNICA`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 089/2025`, validade: `12/03/2025 a 12/03/2027`, pub: `15/03/2025`, pag: `04` },
+        { cod: 867, escola: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, municipio: `RONDONOPOLIS`, curso: `TECNICO EM ADMINISTRACAO`, ato: `RENOVACAO DE AUTORIZACAO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 105/2025`, validade: `20/06/2025 a 20/06/2029`, pub: `24/06/2025`, pag: `21` },
+        { cod: 867, escola: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, municipio: `RONDONOPOLIS`, curso: `TECNICO EM AGRONEGOCIO`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 309/2023`, validade: `18/09/2023 a 18/09/2027`, pub: `22/09/2023`, pag: `15` },
+
+        // Cuiabá (3905) - Regular
+        { cod: 3905, escola: `ESCOLA TECNICA ESTADUAL DE CUIABA`, municipio: `CUIABA`, curso: `TECNICO EM DESENVOLVIMENTO DE SISTEMAS`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 184/2025`, validade: `10/05/2025 a 10/05/2029`, pub: `14/05/2025`, pag: `07` },
+        { cod: 3905, escola: `ESCOLA TECNICA ESTADUAL DE CUIABA`, municipio: `CUIABA`, curso: `TECNICO EM ENFERMAGEM`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 042/2024`, validade: `20/02/2024 a 20/02/2028`, pub: `23/02/2024`, pag: `11` },
+        { cod: 3905, escola: `ESCOLA TECNICA ESTADUAL DE CUIABA`, municipio: `CUIABA`, curso: `TECNICO EM EDIFICACOES`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 276/2024`, validade: `15/08/2024 a 15/08/2028`, pub: `19/08/2024`, pag: `14` },
+        { cod: 3905, escola: `ESCOLA TECNICA ESTADUAL DE CUIABA`, municipio: `CUIABA`, curso: `TECNICO EM CONTABILIDADE`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 214/2025`, validade: `01/07/2025 a 01/07/2028`, pub: `04/07/2025`, pag: `06` },
+        { cod: 3905, escola: `ESCOLA TECNICA ESTADUAL DE CUIABA`, municipio: `CUIABA`, curso: `TECNICO EM SEGURANCA DO TRABALHO`, ato: `RENOVACAO DE AUTORIZACAO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 331/2025`, validade: `12/11/2025 a 12/11/2029`, pub: `14/11/2025`, pag: `19` },
+        { cod: 3905, escola: `ESCOLA TECNICA ESTADUAL DE CUIABA`, municipio: `CUIABA`, curso: `TECNICO EM LOGISTICA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 098/2024`, validade: `10/04/2024 a 10/04/2028`, pub: `15/04/2024`, pag: `08` },
+        { cod: 3905, escola: `ESCOLA TECNICA ESTADUAL DE CUIABA`, municipio: `CUIABA`, curso: `TECNICO EM RECURSOS HUMANOS`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 177/2025`, validade: `22/09/2025 a 22/09/2028`, pub: `25/09/2025`, pag: `05` },
+
+        // Várzea Grande (5107) - Crítico (1 vencido sem protocolo, 1 a vencer)
+        { cod: 5107, escola: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, municipio: `VARZEA GRANDE`, curso: `TECNICO EM MANUTENCAO AUTOMOTIVA`, ato: `AUTORIZACAO`, situacao: `VENCIDO`, modelo: `Portaria`, doc: `Portaria 064/2023`, validade: `15/09/2023 a 15/09/2026`, pub: `18/09/2023`, pag: `10` },
+        { cod: 5107, escola: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, municipio: `VARZEA GRANDE`, curso: `TECNICO EM LOGISTICA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 119/2024`, validade: `08/02/2024 a 08/02/2027`, pub: `12/02/2024`, pag: `07` },
+        { cod: 5107, escola: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, municipio: `VARZEA GRANDE`, curso: `TECNICO EM ELETROMECANICA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 203/2025`, validade: `19/05/2025 a 19/05/2029`, pub: `21/05/2025`, pag: `13` },
+        { cod: 5107, escola: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, municipio: `VARZEA GRANDE`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 310/2025`, validade: `03/10/2025 a 03/10/2028`, pub: `06/10/2025`, pag: `05` },
+        { cod: 5107, escola: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, municipio: `VARZEA GRANDE`, curso: `TECNICO EM INFORMATICA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 144/2024`, validade: `10/06/2024 a 10/06/2028`, pub: `14/06/2024`, pag: `16` },
+
+        // Sinop (656) - Regular
+        { cod: 656, escola: `ESCOLA TECNICA ESTADUAL DE SINOP`, municipio: `SINOP`, curso: `TECNICO EM ENFERMAGEM`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 291/2024`, validade: `14/08/2024 a 14/08/2028`, pub: `18/08/2024`, pag: `12` },
+        { cod: 656, escola: `ESCOLA TECNICA ESTADUAL DE SINOP`, municipio: `SINOP`, curso: `TECNICO EM AGRICULTURA`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 055/2025`, validade: `02/03/2025 a 02/03/2029`, pub: `05/03/2025`, pag: `09` },
+        { cod: 656, escola: `ESCOLA TECNICA ESTADUAL DE SINOP`, municipio: `SINOP`, curso: `TECNICO EM AGROPECUARIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 172/2024`, validade: `25/06/2024 a 25/06/2028`, pub: `28/06/2024`, pag: `14` },
+        { cod: 656, escola: `ESCOLA TECNICA ESTADUAL DE SINOP`, municipio: `SINOP`, curso: `TECNICO EM SEGURANCA DO TRABALHO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 198/2025`, validade: `10/09/2025 a 10/09/2028`, pub: `12/09/2025`, pag: `06` },
+        { cod: 656, escola: `ESCOLA TECNICA ESTADUAL DE SINOP`, municipio: `SINOP`, curso: `TECNICO EM DESENVOLVIMENTO DE SISTEMAS`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 015/2026`, validade: `18/01/2026 a 18/01/2029`, pub: `21/01/2026`, pag: `03` },
+        { cod: 656, escola: `ESCOLA TECNICA ESTADUAL DE SINOP`, municipio: `CLAUDIA`, curso: `TECNICO EM AGRONEGOCIO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 112/2025`, validade: `04/05/2025 a 04/05/2028`, pub: `07/05/2025`, pag: `11` },
+
+        // Sorriso (5010) - Atenção (a vencer em 01/2027 + processo ativo)
+        { cod: 5010, escola: `ESCOLA TECNICA ESTADUAL DE SORRISO`, municipio: `SORRISO`, curso: `TECNICO EM AGRONEGOCIO`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 012/2023`, validade: `20/01/2023 a 20/01/2027`, pub: `24/01/2023`, pag: `08` },
+        { cod: 5010, escola: `ESCOLA TECNICA ESTADUAL DE SORRISO`, municipio: `SORRISO`, curso: `TECNICO EM LOGISTICA`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 048/2024`, validade: `12/03/2024 a 12/03/2027`, pub: `15/03/2024`, pag: `04` },
+        { cod: 5010, escola: `ESCOLA TECNICA ESTADUAL DE SORRISO`, municipio: `SORRISO`, curso: `TECNICO EM ENFERMAGEM`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 264/2025`, validade: `05/08/2025 a 05/08/2029`, pub: `08/08/2025`, pag: `17` },
+        { cod: 5010, escola: `ESCOLA TECNICA ESTADUAL DE SORRISO`, municipio: `SORRISO`, curso: `TECNICO EM MANUTENCAO E SUPORTE EM INFORMATICA`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 209/2025`, validade: `11/10/2025 a 11/10/2028`, pub: `15/10/2025`, pag: `09` },
+        { cod: 5010, escola: `ESCOLA TECNICA ESTADUAL DE SORRISO`, municipio: `VERA`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 140/2025`, validade: `14/06/2025 a 14/06/2028`, pub: `18/06/2025`, pag: `12` },
+
+        // Lucas do Rio Verde (3337) - Regular
+        { cod: 3337, escola: `ESCOLA TECNICA ESTADUAL DE LUCAS DO RIO VERDE`, municipio: `LUCAS DO RIO VERDE`, curso: `TECNICO EM BIOTECNOLOGIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 195/2024`, validade: `12/06/2024 a 12/06/2028`, pub: `15/06/2024`, pag: `10` },
+        { cod: 3337, escola: `ESCOLA TECNICA ESTADUAL DE LUCAS DO RIO VERDE`, municipio: `LUCAS DO RIO VERDE`, curso: `TECNICO EM AUTOMACAO INDUSTRIAL`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 077/2025`, validade: `20/03/2025 a 20/03/2029`, pub: `24/03/2025`, pag: `06` },
+        { cod: 3337, escola: `ESCOLA TECNICA ESTADUAL DE LUCAS DO RIO VERDE`, municipio: `LUCAS DO RIO VERDE`, curso: `TECNICO EM AGRONEGOCIO`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 219/2025`, validade: `15/07/2025 a 15/07/2029`, pub: `18/07/2025`, pag: `15` },
+        { cod: 3337, escola: `ESCOLA TECNICA ESTADUAL DE LUCAS DO RIO VERDE`, municipio: `LUCAS DO RIO VERDE`, curso: `TECNICO EM ENFERMAGEM`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 301/2024`, validade: `19/10/2024 a 19/10/2028`, pub: `22/10/2024`, pag: `13` },
+        { cod: 3337, escola: `ESCOLA TECNICA ESTADUAL DE LUCAS DO RIO VERDE`, municipio: `TAPURAH`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 156/2025`, validade: `10/08/2025 a 10/08/2028`, pub: `13/08/2025`, pag: `07` },
+
+        // Tangará da Serra (657) - Regular
+        { cod: 657, escola: `ESCOLA TECNICA ESTADUAL DE TANGARA DA SERRA`, municipio: `TANGARA DA SERRA`, curso: `TECNICO EM ENFERMAGEM`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 128/2025`, validade: `04/05/2025 a 04/05/2029`, pub: `07/05/2025`, pag: `11` },
+        { cod: 657, escola: `ESCOLA TECNICA ESTADUAL DE TANGARA DA SERRA`, municipio: `TANGARA DA SERRA`, curso: `TECNICO EM AGRIMENSURA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 240/2024`, validade: `18/09/2024 a 18/09/2028`, pub: `20/09/2024`, pag: `14` },
+        { cod: 657, escola: `ESCOLA TECNICA ESTADUAL DE TANGARA DA SERRA`, municipio: `TANGARA DA SERRA`, curso: `TECNICO EM AGROPECUARIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 061/2024`, validade: `12/03/2024 a 12/03/2028`, pub: `15/03/2024`, pag: `08` },
+        { cod: 657, escola: `ESCOLA TECNICA ESTADUAL DE TANGARA DA SERRA`, municipio: `TANGARA DA SERRA`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 233/2025`, validade: `15/11/2025 a 15/11/2028`, pub: `18/11/2025`, pag: `04` },
+        { cod: 657, escola: `ESCOLA TECNICA ESTADUAL DE TANGARA DA SERRA`, municipio: `CAMPO NOVO DO PARECIS`, curso: `TECNICO EM AGRONEGOCIO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 088/2025`, validade: `25/04/2025 a 25/04/2028`, pub: `28/04/2025`, pag: `09` },
+
+        // Barra do Garças (1437) - Atenção (Vencido com processo em andamento + A vencer)
+        { cod: 1437, escola: `ESCOLA TECNICA ESTADUAL DE BARRA DO GARCAS`, municipio: `BARRA DO GARCAS`, curso: `TECNICO EM ENFERMAGEM`, ato: `RECONHECIMENTO`, situacao: `VENCIDO`, modelo: `Resolução CEE/MT`, doc: `Resolução 389/2022`, validade: `02/10/2022 a 02/10/2026`, pub: `05/10/2022`, pag: `15` },
+        { cod: 1437, escola: `ESCOLA TECNICA ESTADUAL DE BARRA DO GARCAS`, municipio: `BARRA DO GARCAS`, curso: `TECNICO EM AGRONEGOCIO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 031/2024`, validade: `10/02/2024 a 10/02/2027`, pub: `14/02/2024`, pag: `07` },
+        { cod: 1437, escola: `ESCOLA TECNICA ESTADUAL DE BARRA DO GARCAS`, municipio: `BARRA DO GARCAS`, curso: `TECNICO EM EDIFICACOES`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 190/2024`, validade: `14/07/2024 a 14/07/2028`, pub: `17/07/2024`, pag: `12` },
+        { cod: 1437, escola: `ESCOLA TECNICA ESTADUAL DE BARRA DO GARCAS`, municipio: `BARRA DO GARCAS`, curso: `TECNICO EM RECURSOS HUMANOS`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 165/2025`, validade: `20/08/2025 a 20/08/2028`, pub: `23/08/2025`, pag: `06` },
+        { cod: 1437, escola: `ESCOLA TECNICA ESTADUAL DE BARRA DO GARCAS`, municipio: `NOVA XAVANTINA`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 204/2025`, validade: `11/09/2025 a 11/09/2028`, pub: `15/09/2025`, pag: `10` },
+
+        // Cáceres (4858) - Atenção (2 cursos a vencer no horizonte 180 dias)
+        { cod: 4858, escola: `ESCOLA TECNICA ESTADUAL DE CACERES`, municipio: `CACERES`, curso: `TECNICO EM AQUICULTURA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 018/2023`, validade: `15/01/2023 a 15/01/2027`, pub: `18/01/2023`, pag: `09` },
+        { cod: 4858, escola: `ESCOLA TECNICA ESTADUAL DE CACERES`, municipio: `CACERES`, curso: `TECNICO EM ENFERMAGEM`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 084/2023`, validade: `28/03/2023 a 28/03/2027`, pub: `31/03/2023`, pag: `16` },
+        { cod: 4858, escola: `ESCOLA TECNICA ESTADUAL DE CACERES`, municipio: `CACERES`, curso: `TECNICO EM AGROPECUARIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 211/2024`, validade: `12/08/2024 a 12/08/2028`, pub: `15/08/2024`, pag: `11` },
+        { cod: 4858, escola: `ESCOLA TECNICA ESTADUAL DE CACERES`, municipio: `CACERES`, curso: `TECNICO EM INFORMATICA`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 118/2025`, validade: `05/06/2025 a 05/06/2028`, pub: `09/06/2025`, pag: `05` },
+        { cod: 4858, escola: `ESCOLA TECNICA ESTADUAL DE CACERES`, municipio: `MIRASSOL D OESTE`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 251/2025`, validade: `14/10/2025 a 14/10/2028`, pub: `17/10/2025`, pag: `08` },
+
+        // Alta Floresta (617) - Atenção (Vencido com processo ativo em análise no CEE/MT)
+        { cod: 617, escola: `ESCOLA TECNICA ESTADUAL DE ALTA FLORESTA`, municipio: `ALTA FLORESTA`, curso: `TECNICO EM FLORESTAS`, ato: `RECONHECIMENTO`, situacao: `VENCIDO`, modelo: `Resolução CEE/MT`, doc: `Resolução 342/2022`, validade: `22/09/2022 a 22/09/2026`, pub: `26/09/2022`, pag: `14` },
+        { cod: 617, escola: `ESCOLA TECNICA ESTADUAL DE ALTA FLORESTA`, municipio: `ALTA FLORESTA`, curso: `TECNICO EM AGROPECUARIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 155/2024`, validade: `18/06/2024 a 18/06/2028`, pub: `21/06/2024`, pag: `09` },
+        { cod: 617, escola: `ESCOLA TECNICA ESTADUAL DE ALTA FLORESTA`, municipio: `ALTA FLORESTA`, curso: `TECNICO EM ENFERMAGEM`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 279/2025`, validade: `10/10/2025 a 10/10/2029`, pub: `14/10/2025`, pag: `19` },
+        { cod: 617, escola: `ESCOLA TECNICA ESTADUAL DE ALTA FLORESTA`, municipio: `ALTA FLORESTA`, curso: `TECNICO EM CONTABILIDADE`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 093/2025`, validade: `12/04/2025 a 12/04/2028`, pub: `15/04/2025`, pag: `05` },
+        { cod: 617, escola: `ESCOLA TECNICA ESTADUAL DE ALTA FLORESTA`, municipio: `CARLINDA`, curso: `TECNICO EM AGRONEGOCIO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 174/2025`, validade: `02/09/2025 a 02/09/2028`, pub: `05/09/2025`, pag: `08` },
+
+        // Juara (5009) - Crítico (1 vencido sem protocolo, 1 a vencer)
+        { cod: 5009, escola: `ESCOLA TECNICA ESTADUAL DE JUARA`, municipio: `JUARA`, curso: `TECNICO EM AGROPECUARIA`, ato: `AUTORIZACAO`, situacao: `VENCIDO`, modelo: `Portaria`, doc: `Portaria 290/2023`, validade: `25/10/2023 a 25/10/2026`, pub: `28/10/2023`, pag: `11` },
+        { cod: 5009, escola: `ESCOLA TECNICA ESTADUAL DE JUARA`, municipio: `JUARA`, curso: `TECNICO EM MADEIRA`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 022/2024`, validade: `30/01/2024 a 30/01/2027`, pub: `02/02/2024`, pag: `04` },
+        { cod: 5009, escola: `ESCOLA TECNICA ESTADUAL DE JUARA`, municipio: `JUARA`, curso: `TECNICO EM ADMINISTRACAO`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 168/2024`, validade: `14/07/2024 a 14/07/2028`, pub: `18/07/2024`, pag: `10` },
+        { cod: 5009, escola: `ESCOLA TECNICA ESTADUAL DE JUARA`, municipio: `JUARA`, curso: `TECNICO EM ENFERMAGEM`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 188/2025`, validade: `20/08/2025 a 20/08/2028`, pub: `22/08/2025`, pag: `07` },
+
+        // Poxoréu (1621) - Crítico (1 vencido sem protocolo)
+        { cod: 1621, escola: `ESCOLA TECNICA ESTADUAL DE POXOREU`, municipio: `POXOREU`, curso: `TECNICO EM MINERACAO`, ato: `AUTORIZACAO`, situacao: `VENCIDO`, modelo: `Portaria`, doc: `Portaria 177/2023`, validade: `08/08/2023 a 08/08/2026`, pub: `11/08/2023`, pag: `13` },
+        { cod: 1621, escola: `ESCOLA TECNICA ESTADUAL DE POXOREU`, municipio: `POXOREU`, curso: `TECNICO EM AGROPECUARIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 149/2024`, validade: `15/06/2024 a 15/06/2028`, pub: `19/06/2024`, pag: `09` },
+        { cod: 1621, escola: `ESCOLA TECNICA ESTADUAL DE POXOREU`, municipio: `POXOREU`, curso: `TECNICO EM INFORMÁTICA PARA INTERNET`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 071/2025`, validade: `10/03/2025 a 10/03/2028`, pub: `13/03/2025`, pag: `06` },
+        { cod: 1621, escola: `ESCOLA TECNICA ESTADUAL DE POXOREU`, municipio: `POXOREU`, curso: `TECNICO EM CONTABILIDADE`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 219/2025`, validade: `05/11/2025 a 05/11/2028`, pub: `08/11/2025`, pag: `04` },
+
+        // Primavera do Leste (5003) - Regular
+        { cod: 5003, escola: `ESCOLA TECNICA ESTADUAL DE PRIMAVERA DO LESTE`, municipio: `PRIMAVERA DO LESTE`, curso: `TECNICO EM AGRONEGOCIO`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 234/2024`, validade: `18/09/2024 a 18/09/2028`, pub: `20/09/2024`, pag: `12` },
+        { cod: 5003, escola: `ESCOLA TECNICA ESTADUAL DE PRIMAVERA DO LESTE`, municipio: `PRIMAVERA DO LESTE`, curso: `TECNICO EM AGRICULTURA DE PRECISAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 105/2025`, validade: `14/04/2025 a 14/04/2028`, pub: `17/04/2025`, pag: `05` },
+        { cod: 5003, escola: `ESCOLA TECNICA ESTADUAL DE PRIMAVERA DO LESTE`, municipio: `PRIMAVERA DO LESTE`, curso: `TECNICO EM LOGISTICA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 049/2025`, validade: `05/02/2025 a 05/02/2029`, pub: `08/02/2025`, pag: `11` },
+        { cod: 5003, escola: `ESCOLA TECNICA ESTADUAL DE PRIMAVERA DO LESTE`, municipio: `PRIMAVERA DO LESTE`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 228/2025`, validade: `12/11/2025 a 12/11/2028`, pub: `15/11/2025`, pag: `08` },
+        { cod: 5003, escola: `ESCOLA TECNICA ESTADUAL DE PRIMAVERA DO LESTE`, municipio: `PARANATINGA`, curso: `TECNICO EM CONTABILIDADE`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 019/2026`, validade: `25/01/2026 a 25/01/2029`, pub: `28/01/2026`, pag: `03` },
+
+        // Campo Verde (2392) - Regular
+        { cod: 2392, escola: `ESCOLA TECNICA ESTADUAL DE CAMPO VERDE`, municipio: `CAMPO VERDE`, curso: `TECNICO EM AGROINDUSTRIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 182/2024`, validade: `20/06/2024 a 20/06/2028`, pub: `24/06/2024`, pag: `10` },
+        { cod: 2392, escola: `ESCOLA TECNICA ESTADUAL DE CAMPO VERDE`, municipio: `CAMPO VERDE`, curso: `TECNICO EM AGRONEGOCIO`, ato: `RENOVACAO DE RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 088/2025`, validade: `12/03/2025 a 12/03/2029`, pub: `15/03/2025`, pag: `14` },
+        { cod: 2392, escola: `ESCOLA TECNICA ESTADUAL DE CAMPO VERDE`, municipio: `CAMPO VERDE`, curso: `TECNICO EM ENFERMAGEM`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 299/2025`, validade: `10/11/2025 a 10/11/2029`, pub: `13/11/2025`, pag: `18` },
+        { cod: 2392, escola: `ESCOLA TECNICA ESTADUAL DE CAMPO VERDE`, municipio: `CAMPO VERDE`, curso: `TECNICO EM RECURSOS HUMANOS`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 132/2025`, validade: `15/07/2025 a 15/07/2028`, pub: `18/07/2025`, pag: `06` },
+
+        // Diamantino (321) - Atenção (A vencer em 12/2026 com processo ativo)
+        { cod: 321, escola: `ESCOLA TECNICA ESTADUAL DE DIAMANTINO`, municipio: `DIAMANTINO`, curso: `TECNICO EM ENFERMAGEM`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 398/2022`, validade: `18/12/2022 a 18/12/2026`, pub: `21/12/2022`, pag: `15` },
+        { cod: 321, escola: `ESCOLA TECNICA ESTADUAL DE DIAMANTINO`, municipio: `DIAMANTINO`, curso: `TECNICO EM AGROPECUARIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 154/2024`, validade: `10/06/2024 a 10/06/2028`, pub: `13/06/2024`, pag: `11` },
+        { cod: 321, escola: `ESCOLA TECNICA ESTADUAL DE DIAMANTINO`, municipio: `DIAMANTINO`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 095/2025`, validade: `20/04/2025 a 20/04/2028`, pub: `23/04/2025`, pag: `07` },
+        { cod: 321, escola: `ESCOLA TECNICA ESTADUAL DE DIAMANTINO`, municipio: `ARENAPOLIS`, curso: `TECNICO EM LOGISTICA`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 201/2025`, validade: `14/09/2025 a 14/09/2028`, pub: `17/09/2025`, pag: `09` },
+
+        // Água Boa (5002) - Atenção (A vencer em 04/2027 sem processo ainda)
+        { cod: 5002, escola: `ESCOLA TECNICA ESTADUAL DE AGUA BOA`, municipio: `AGUA BOA`, curso: `TECNICO EM AGROPECUARIA`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 074/2023`, validade: `05/04/2023 a 05/04/2027`, pub: `10/04/2023`, pag: `12` },
+        { cod: 5002, escola: `ESCOLA TECNICA ESTADUAL DE AGUA BOA`, municipio: `AGUA BOA`, curso: `TECNICO EM ENFERMAGEM`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 218/2024`, validade: `15/08/2024 a 15/08/2028`, pub: `19/08/2024`, pag: `14` },
+        { cod: 5002, escola: `ESCOLA TECNICA ESTADUAL DE AGUA BOA`, municipio: `AGUA BOA`, curso: `TECNICO EM ADMINISTRACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 145/2025`, validade: `18/06/2025 a 18/06/2028`, pub: `20/06/2025`, pag: `06` },
+        { cod: 5002, escola: `ESCOLA TECNICA ESTADUAL DE AGUA BOA`, municipio: `CANARANA`, curso: `TECNICO EM AGRONEGOCIO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 027/2026`, validade: `09/02/2026 a 09/02/2029`, pub: `12/02/2026`, pag: `04` },
+
+        // Matupá (5008) - Atenção (A vencer em 02/2027 com processo em cadastramento)
+        { cod: 5008, escola: `ESCOLA TECNICA ESTADUAL DE MATUPA`, municipio: `MATUPA`, curso: `TECNICO EM MINERACAO`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 036/2024`, validade: `19/02/2024 a 19/02/2027`, pub: `22/02/2024`, pag: `08` },
+        { cod: 5008, escola: `ESCOLA TECNICA ESTADUAL DE MATUPA`, municipio: `MATUPA`, curso: `TECNICO EM AGRONEGOCIO`, ato: `RECONHECIMENTO`, situacao: `REGULAR`, modelo: `Resolução CEE/MT`, doc: `Resolução 187/2024`, validade: `12/07/2024 a 12/07/2028`, pub: `15/07/2024`, pag: `11` },
+        { cod: 5008, escola: `ESCOLA TECNICA ESTADUAL DE MATUPA`, municipio: `MATUPA`, curso: `TECNICO EM ENFERMAGEM`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 169/2025`, validade: `14/08/2025 a 14/08/2028`, pub: `18/08/2025`, pag: `07` },
+        { cod: 5008, escola: `ESCOLA TECNICA ESTADUAL DE MATUPA`, municipio: `PEIXOTO DE AZEVEDO`, curso: `TECNICO EM CONTABILIDADE`, ato: `AUTORIZACAO`, situacao: `REGULAR`, modelo: `Portaria`, doc: `Portaria 244/2025`, validade: `25/11/2025 a 25/11/2028`, pub: `28/11/2025`, pag: `05` }
+      ];
+      return rows;
+    }
+
+    function buildBaselineProcessos() {
+      return [
+        // Rondonópolis (867) -> has process ONLY for Enfermagem; Segurança do Trabalho (Portaria 123/2024) has NO active process!
+        { cod: 867, instituicao: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, ano: `2026`, processo: `01842/2026`, tipoAto: `RENOVAÇÃO DE RECONHECIMENTO - TÉC. ENFERMAGEM`, cidade: `RONDONÓPOLIS`, situacao: `EM ANDAMENTO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `MARIA CLARA ALMEIDA`, protocoladoEm: `14/09/2026 10:22` },
+        { cod: 867, instituicao: `ESCOLA TECNICA ESTADUAL DE RONDONOPOLIS`, ano: `2025`, processo: `04110/2025`, tipoAto: `AUTORIZAÇÃO - TÉC. ELETROTÉCNICA`, cidade: `RONDONÓPOLIS`, situacao: `FINALIZADO`, setor: `SECRETARIA DE ESTADO DE CIÊNCIA E TECNOLOGIA`, responsavel: `JOAO PEDRO OLIVEIRA`, protocoladoEm: `12/01/2025 14:15` },
+
+        // Cuiabá (3905)
+        { cod: 3905, instituicao: `ESCOLA TECNICA ESTADUAL DE CUIABA`, ano: `2026`, processo: `00912/2026`, tipoAto: `CREDENCIAMENTO DE LABORATÓRIO - INFORMÁTICA`, cidade: `CUIABÁ`, situacao: `EM ANDAMENTO`, setor: `COORDENADORIA DE FISCALIZAÇÃO - SECITECI`, responsavel: `CARLOS EDUARDO SILVA`, protocoladoEm: `03/08/2026 09:40` },
+        { cod: 3905, instituicao: `ESCOLA TECNICA ESTADUAL DE CUIABA`, ano: `2025`, processo: `03884/2025`, tipoAto: `RENOVAÇÃO DE AUTORIZAÇÃO - SEGURANÇA DO TRABALHO`, cidade: `CUIABÁ`, situacao: `FINALIZADO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `ANA PAULA FERREIRA`, protocoladoEm: `18/08/2025 16:05` },
+
+        // Várzea Grande (5107) -> NO active process for Manutenção Automotiva (expired); has active process for Logística (expiring 02/2027)
+        { cod: 5107, instituicao: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, ano: `2026`, processo: `02219/2026`, tipoAto: `RENOVAÇÃO DE RECONHECIMENTO - TÉC. LOGÍSTICA`, cidade: `VÁRZEA GRANDE`, situacao: `RECEBER PROCESSO`, setor: `COORDENADORIA DE EDUCAÇÃO PROFISSIONAL`, responsavel: `RODRIGO MENDES`, protocoladoEm: `04/11/2026 11:30` },
+        { cod: 5107, instituicao: `ESCOLA TECNICA ESTADUAL DE VARZEA GRANDE`, ano: `2024`, processo: `01902/2024`, tipoAto: `RECONHECIMENTO - TÉC. ELETROMECÂNICA`, cidade: `VÁRZEA GRANDE`, situacao: `FINALIZADO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `FERNANDA LIMA`, protocoladoEm: `22/10/2024 15:10` },
+
+        // Sinop (656)
+        { cod: 656, instituicao: `ESCOLA TECNICA ESTADUAL DE SINOP`, ano: `2026`, processo: `00415/2026`, tipoAto: `APROVAÇÃO DE PLANO DE CURSO - DESENV. SISTEMAS`, cidade: `SINOP`, situacao: `FINALIZADO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `LUCIANA BARBOSA`, protocoladoEm: `10/02/2026 08:50` },
+        { cod: 656, instituicao: `ESCOLA TECNICA ESTADUAL DE SINOP`, ano: `2026`, processo: `02051/2026`, tipoAto: `CREDENCIAMENTO POLO EXTENSÃO CLÁUDIA`, cidade: `SINOP`, situacao: `EM ANDAMENTO`, setor: `GABINETE ADJUNTO - SECITECI`, responsavel: `MARCOS VINICIUS`, protocoladoEm: `19/10/2026 14:40` },
+
+        // Sorriso (5010) -> covers Agronegócio (expiring 01/2027)
+        { cod: 5010, instituicao: `ESCOLA TECNICA ESTADUAL DE SORRISO`, ano: `2026`, processo: `01790/2026`, tipoAto: `RENOVAÇÃO DE RECONHECIMENTO - TÉC. AGRONEGÓCIO`, cidade: `SORRISO`, situacao: `EM ANDAMENTO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `PATRICIA NOGUEIRA`, protocoladoEm: `02/09/2026 09:15` },
+        { cod: 5010, instituicao: `ESCOLA TECNICA ESTADUAL DE SORRISO`, ano: `2026`, processo: `02180/2026`, tipoAto: `RENOVAÇÃO DE AUTORIZAÇÃO - TÉC. LOGÍSTICA`, cidade: `SORRISO`, situacao: `CADASTRANDO`, setor: `SECRETARIA ESCOLAR ETEC SORRISO`, responsavel: `RAFAEL COSTA`, protocoladoEm: `10/11/2026 17:02` },
+
+        // Barra do Garças (1437) -> covers Enfermagem (expired 10/2026) with active CEE process!
+        { cod: 1437, instituicao: `ESCOLA TECNICA ESTADUAL DE BARRA DO GARCAS`, ano: `2026`, processo: `01455/2026`, tipoAto: `RENOVAÇÃO DE RECONHECIMENTO - TÉC. ENFERMAGEM`, cidade: `BARRA DO GARÇAS`, situacao: `EM ANDAMENTO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `JULIANA RIBEIRO`, protocoladoEm: `18/07/2026 13:20` },
+
+        // Cáceres (4858) -> covers Aquicultura, Enfermagem pending protocol
+        { cod: 4858, instituicao: `ESCOLA TECNICA ESTADUAL DE CACERES`, ano: `2026`, processo: `01993/2026`, tipoAto: `RENOVAÇÃO DE RECONHECIMENTO - TÉC. AQUICULTURA`, cidade: `CÁCERES`, situacao: `RECEBER PROCESSO`, setor: `COORDENADORIA DE FISCALIZAÇÃO - SECITECI`, responsavel: `THIAGO ARRUDA`, protocoladoEm: `28/10/2026 10:05` },
+
+        // Alta Floresta (617) -> covers Florestas (expired 09/2026)
+        { cod: 617, instituicao: `ESCOLA TECNICA ESTADUAL DE ALTA FLORESTA`, ano: `2026`, processo: `01318/2026`, tipoAto: `RENOVAÇÃO DE RECONHECIMENTO - TÉC. FLORESTAS`, cidade: `ALTA FLORESTA`, situacao: `EM ANDAMENTO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `RENATA SOUZA`, protocoladoEm: `30/06/2026 11:45` },
+
+        // Diamantino (321) -> covers Enfermagem (expiring 12/2026)
+        { cod: 321, instituicao: `ESCOLA TECNICA ESTADUAL DE DIAMANTINO`, ano: `2026`, processo: `01644/2026`, tipoAto: `RENOVAÇÃO DE RECONHECIMENTO - TÉC. ENFERMAGEM`, cidade: `DIAMANTINO`, situacao: `EM ANDAMENTO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `GUSTAVO HENRIQUE`, protocoladoEm: `21/08/2026 15:30` },
+
+        // Matupá (5008) -> covers Mineração (expiring 02/2027)
+        { cod: 5008, instituicao: `ESCOLA TECNICA ESTADUAL DE MATUPA`, ano: `2026`, processo: `02204/2026`, tipoAto: `RENOVAÇÃO DE AUTORIZAÇÃO - TÉC. MINERAÇÃO`, cidade: `MATUPÁ`, situacao: `CADASTRANDO`, setor: `COORDENADORIA DE EDUCAÇÃO PROFISSIONAL`, responsavel: `BRUNO MARTINS`, protocoladoEm: `07/11/2026 14:12` },
+
+        // Juara (5009) -> only archived historical process; Agropecuária (expired 25/10/2026) has NO active process!
+        { cod: 5009, instituicao: `ESCOLA TECNICA ESTADUAL DE JUARA`, ano: `2023`, processo: `02810/2023`, tipoAto: `AUTORIZAÇÃO - TÉC. AGROPECUÁRIA`, cidade: `JUARA`, situacao: `FINALIZADO`, setor: `SECRETARIA DE ESTADO DE EDUCAÇÃO`, responsavel: `CAMILA SANTOS`, protocoladoEm: `12/09/2023 09:00` },
+
+        // Poxoréu (1621) -> only finalized 2024 process; Mineração (expired 08/08/2026) has NO active process!
+        { cod: 1621, instituicao: `ESCOLA TECNICA ESTADUAL DE POXOREU`, ano: `2024`, processo: `01105/2024`, tipoAto: `RECONHECIMENTO - TÉC. AGROPECUÁRIA`, cidade: `POXORÉU`, situacao: `FINALIZADO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `EDUARDO ROCHA`, protocoladoEm: `04/05/2024 10:30` },
+
+        // Lucas do Rio Verde (3337), Tangará (657), Campo Verde (2392), Primavera (5003), Água Boa (5002)
+        { cod: 3337, instituicao: `ESCOLA TECNICA ESTADUAL DE LUCAS DO RIO VERDE`, ano: `2025`, processo: `02914/2025`, tipoAto: `RENOVAÇÃO DE RECONHECIMENTO - TÉC. AGRONEGÓCIO`, cidade: `LUCAS DO RIO VERDE`, situacao: `FINALIZADO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `ALINE MOREIRA`, protocoladoEm: `11/06/2025 16:20` },
+        { cod: 657,  instituicao: `ESCOLA TECNICA ESTADUAL DE TANGARA DA SERRA`, ano: `2025`, processo: `03410/2025`, tipoAto: `AUTORIZAÇÃO - TÉC. ADMINISTRAÇÃO`, cidade: `TANGARÁ DA SERRA`, situacao: `FINALIZADO`, setor: `SECRETARIA DE ESTADO DE CIÊNCIA E TECNOLOGIA`, responsavel: `DIEGO PEREIRA`, protocoladoEm: `02/10/2025 11:10` },
+        { cod: 2392, instituicao: `ESCOLA TECNICA ESTADUAL DE CAMPO VERDE`, ano: `2025`, processo: `03608/2025`, tipoAto: `RECONHECIMENTO - TÉC. ENFERMAGEM`, cidade: `CAMPO VERDE`, situacao: `FINALIZADO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `LARISSA MONTEIRO`, protocoladoEm: `19/09/2025 14:48` },
+        { cod: 5003, instituicao: `ESCOLA TECNICA ESTADUAL DE PRIMAVERA DO LESTE`, ano: `2026`, processo: `00112/2026`, tipoAto: `AUTORIZAÇÃO - TÉC. CONTABILIDADE (PARANATINGA)`, cidade: `PRIMAVERA DO LESTE`, situacao: `FINALIZADO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `FELIPE BORGES`, protocoladoEm: `09/01/2026 08:35` },
+        { cod: 5002, instituicao: `ESCOLA TECNICA ESTADUAL DE AGUA BOA`, ano: `2026`, processo: `00540/2026`, tipoAto: `AUTORIZAÇÃO - TÉC. AGRONEGÓCIO (CANARANA)`, cidade: `ÁGUA BOA`, situacao: `FINALIZADO`, setor: `CONSELHO ESTADUAL DE EDUCAÇÃO - CEE/MT`, responsavel: `VANESSA QUEIROZ`, protocoladoEm: `20/01/2026 15:05` }
+      ];
+    }
+
+    // =========================================================================
+    // 3. APPLICATION STATE
+    // =========================================================================
+    const appState = {
+      atos: buildBaselineAtos(),
+      processos: buildBaselineProcessos(),
+      selectedEtec: `TODAS`,
+      activeUnitDossier: 867, // defaults to Rondonópolis when TODAS is selected so section 4 is rich immediately
+      riskFilter: `TODOS`,
+      horizonDays: 180,
+      searchQuery: ``,
+      crossTab: `TODOS`,
+      dossierTab: `atos`,
+      mapLayers: { roads: true, labels: true },
+      diligencias: {
+        867: [
+          {
+            id: `dil-1`,
+            date: `12/11/2026`,
+            type: `Notificação à Mantenedora`,
+            text: `Identificado vencimento da Portaria 123/2024 (Téc. Segurança do Trabalho) em 09/11/2026 sem protocolo de renovação na Sistemática. Emitido pré-alerta via Google Chat da ETEC Rondonópolis.`
+          }
+        ],
+        5107: [
+          {
+            id: `dil-2`,
+            date: `05/11/2026`,
+            type: `Conferência de Protocolo SIPE`,
+            text: `Protocolo 02219/2026 recebido para Téc. Logística. Pendente abertura de processo para Téc. Manutenção Automotiva (Portaria 064/2023 expirada).`
+          }
+        ]
+      },
+      customSourceLabel: `BASE REFERENCIAL SIGEDUCA/SIPE`
+    };
+
+    let chartComparisonInstance = null;
+    let chartTimelineInstance = null;
+    let mapZoomBehavior = null;
+    let mapSvgSelection = null;
+    let currentNoticeRecord = null;
+
+    // =========================================================================
+    // 4. DATE & CLASSIFICATION ENGINE (MIRRORS BACKUP APPSCRIPT.txt LOGIC)
+    // =========================================================================
+    function normalizeText(str) {
+      return String(str || ``)
+        .normalize(`NFD`)
+        .replace(/[\u0300-\u036f]/g, ``)
+        .trim()
+        .toUpperCase();
+    }
+
+    function parseEndDateFromValidade(validadeStr) {
+      const str = String(validadeStr || ``);
+      const matches = str.match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
+      if (!matches || matches.length === 0) return null;
+      const last = matches[matches.length - 1];
+      const parts = last.split(`/`);
+      return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+    }
+
+    function formatDateBR(dateObj) {
+      if (!dateObj) return `—`;
+      const d = String(dateObj.getDate()).padStart(2, `0`);
+      const m = String(dateObj.getMonth() + 1).padStart(2, `0`);
+      const y = dateObj.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+
+    function diffDays(targetDate, baseDate) {
+      const msPerDay = 86400000;
+      const t = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const b = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+      return Math.round((t - b) / msPerDay);
+    }
+
+    function isActiveProcessStatus(sit) {
+      const s = normalizeText(sit);
+      return s === `EM ANDAMENTO` || s === `RECEBER PROCESSO` || s === `CADASTRANDO`;
+    }
+
+    function findMatchingProcess(atoRow, processosList) {
+      const cod = Number(atoRow.cod);
+      const cursoNorm = normalizeText(atoRow.curso)
+        .replace(/TECNICO EM /g, ``)
+        .replace(/TEC\. /g, ``)
+        .trim();
+
+      // Match same ETEC + active process whose tipoAto mentions the course keywords
+      const candidates = processosList.filter(p => Number(p.cod) === cod && isActiveProcessStatus(p.situacao));
+      for (let i = 0; i < candidates.length; i++) {
+        const tipoNorm = normalizeText(candidates[i].tipoAto);
+        const keywords = cursoNorm.split(/\s+/).filter(w => w.length >= 5);
+        if (keywords.some(kw => tipoNorm.includes(kw))) {
+          return candidates[i];
+        }
+      }
+      return null;
+    }
+
+    function classifyAtos(atosList, processosList, horizonDays) {
+      return atosList.map(ato => {
+        const endDate = parseEndDateFromValidade(ato.validade);
+        const daysRemaining = endDate ? diffDays(endDate, REFERENCE_DATE) : null;
+        const matchedProcess = findMatchingProcess(ato, processosList);
+
+        let category = `VIGENTE`; // VIGENTE | A_VENCER | VENCIDO_COBERTO | VENCIDO_DESCOBERTO
+        if (daysRemaining !== null && daysRemaining < 0) {
+          category = matchedProcess ? `VENCIDO_COBERTO` : `VENCIDO_DESCOBERTO`;
+        } else if (daysRemaining !== null && daysRemaining <= horizonDays) {
+          category = `A_VENCER`;
+        }
+
+        return {
+          ...ato,
+          endDate,
+          daysRemaining,
+          matchedProcess,
+          category
+        };
+      });
+    }
+
+    function computeEtecSummaries(classifiedAtos, processosList) {
+      return ETECS_MASTER.map(etec => {
+        const unitAtos = classifiedAtos.filter(a => Number(a.cod) === etec.cod);
+        const unitProcs = processosList.filter(p => Number(p.cod) === etec.cod);
+        const activeProcs = unitProcs.filter(p => isActiveProcessStatus(p.situacao));
+
+        const vigentes = unitAtos.filter(a => a.category === `VIGENTE`).length;
+        const aVencer = unitAtos.filter(a => a.category === `A_VENCER`).length;
+        const vencidosCobertos = unitAtos.filter(a => a.category === `VENCIDO_COBERTO`).length;
+        const vencidosDescobertos = unitAtos.filter(a => a.category === `VENCIDO_DESCOBERTO`).length;
+        const totalVencidos = vencidosCobertos + vencidosDescobertos;
+
+        let risk = `VERDE`;
+        let riskRank = 3;
+        let riskLabel = `Regular`;
+        if (vencidosDescobertos > 0) {
+          risk = `VERMELHO`;
+          riskRank = 1;
+          riskLabel = `Crítico`;
+        } else if (vencidosCobertos > 0 || aVencer > 0) {
+          risk = `AMARELO`;
+          riskRank = 2;
+          riskLabel = `Atenção`;
+        }
+
+        const totalCursos = unitAtos.length;
+        const regularPct = totalCursos > 0 ? Math.round(((vigentes + aVencer) / totalCursos) * 100) : 100;
+
+        return {
+          ...etec,
+          atos: unitAtos,
+          processos: unitProcs,
+          activeProcessCount: activeProcs.length,
+          totalCursos,
+          vigentes,
+          aVencer,
+          vencidosCobertos,
+          vencidosDescobertos,
+          totalVencidos,
+          risk,
+          riskRank,
+          riskLabel,
+          regularPct
+        };
+      });
+    }
+
+    function getCssToken(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    // =========================================================================
+    // 5. STATE PERSISTENCE (notebookAppApi SHIM)
+    // =========================================================================
+    async function persistState() {
+      if (!window.notebookAppApi || typeof window.notebookAppApi.setAppState !== `function`) return;
+      try {
+        await window.notebookAppApi.setAppState({
+          selectedEtec: appState.selectedEtec,
+          activeUnitDossier: appState.activeUnitDossier,
+          riskFilter: appState.riskFilter,
+          horizonDays: appState.horizonDays,
+          searchQuery: appState.searchQuery,
+          crossTab: appState.crossTab,
+          dossierTab: appState.dossierTab,
+          diligencias: appState.diligencias,
+          atos: appState.atos,
+          processos: appState.processos,
+          customSourceLabel: appState.customSourceLabel
+        });
+      } catch (err) {
+        // Silent fail if host quota exceeded
+      }
+    }
+
+    async function loadSavedState() {
+      if (!window.notebookAppApi || typeof window.notebookAppApi.getAppState !== `function`) return;
+      try {
+        const saved = await window.notebookAppApi.getAppState();
+        if (!saved) return;
+        if (saved.selectedEtec !== undefined) appState.selectedEtec = saved.selectedEtec;
+        if (saved.activeUnitDossier !== undefined) appState.activeUnitDossier = saved.activeUnitDossier;
+        if (saved.riskFilter !== undefined) appState.riskFilter = saved.riskFilter;
+        if (saved.horizonDays !== undefined) appState.horizonDays = Number(saved.horizonDays) || 180;
+        if (saved.searchQuery !== undefined) appState.searchQuery = saved.searchQuery;
+        if (saved.crossTab !== undefined) appState.crossTab = saved.crossTab;
+        if (saved.dossierTab !== undefined) appState.dossierTab = saved.dossierTab;
+        if (saved.diligencias) appState.diligencias = saved.diligencias;
+        if (Array.isArray(saved.atos) && saved.atos.length > 0) appState.atos = saved.atos;
+        if (Array.isArray(saved.processos) && saved.processos.length > 0) appState.processos = saved.processos;
+        if (saved.customSourceLabel) appState.customSourceLabel = saved.customSourceLabel;
+      } catch (err) {
+        // Fallback cleanly to baseline
+      }
+    }
+
+    // =========================================================================
+    // 6. RENDERING PIPELINE
+    // =========================================================================
+    function populateEtecDropdown() {
+      const sel = document.getElementById(`filter-etec`);
+      if (!sel) return;
+      const currentVal = String(appState.selectedEtec);
+      sel.innerHTML = `<option value="TODAS">Todas as 17 ETECs (Visão Estadual)</option>`;
+      const sorted = [...ETECS_MASTER].sort((a, b) => a.cidade.localeCompare(b.cidade, `pt-BR`));
+      sorted.forEach(e => {
+        const opt = document.createElement(`option`);
+        opt.value = String(e.cod);
+        opt.textContent = `${e.nome} (Cód. ${e.cod})`;
+        sel.appendChild(opt);
+      });
+      sel.value = currentVal;
+    }
+
+    function syncFilterControlsFromState() {
+      const selEtec = document.getElementById(`filter-etec`);
+      const selRisk = document.getElementById(`filter-risk`);
+      const selHorizon = document.getElementById(`filter-horizon`);
+      const inpSearch = document.getElementById(`filter-search`);
+      const badgeSource = document.getElementById(`data-source-badge`);
+
+      if (selEtec) selEtec.value = String(appState.selectedEtec);
+      if (selRisk) selRisk.value = appState.riskFilter;
+      if (selHorizon) selHorizon.value = String(appState.horizonDays);
+      if (inpSearch) inpSearch.value = appState.searchQuery;
+      if (badgeSource) badgeSource.innerHTML = `FONTE: <strong>${escapeHtml(appState.customSourceLabel)}</strong>`;
+    }
+
+    function escapeHtml(txt) {
+      return String(txt || ``)
+        .replace(/&/g, `&amp;`)
+        .replace(/</g, `&lt;`)
+        .replace(/>/g, `&gt;`)
+        .replace(/"/g, `&quot;`);
+    }
+
+    function renderAll() {
+      const classifiedAtos = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
+      const summaries = computeEtecSummaries(classifiedAtos, appState.processos);
+
+      // Apply global filters for unit list & KPIs
+      const queryNorm = normalizeText(appState.searchQuery);
+      const filteredSummaries = summaries.filter(s => {
+        if (appState.selectedEtec !== `TODAS` && Number(appState.selectedEtec) !== s.cod) return false;
+        if (appState.riskFilter !== `TODOS` && s.risk !== appState.riskFilter) return false;
+        if (queryNorm) {
+          const hitUnit = normalizeText(s.nome).includes(queryNorm) || normalizeText(s.cidade).includes(queryNorm) || String(s.cod).includes(queryNorm);
+          const hitAtos = s.atos.some(a => normalizeText(a.curso).includes(queryNorm) || normalizeText(a.doc).includes(queryNorm));
+          const hitProc = s.processos.some(p => normalizeText(p.processo).includes(queryNorm) || normalizeText(p.tipoAto).includes(queryNorm));
+          if (!hitUnit && !hitAtos && !hitProc) return false;
+        }
+        return true;
+      });
+
+      const filteredAtos = classifiedAtos.filter(a => {
+        const unit = summaries.find(s => s.cod === Number(a.cod));
+        if (!unit) return false;
+        if (appState.selectedEtec !== `TODAS` && Number(appState.selectedEtec) !== unit.cod) return false;
+        if (appState.riskFilter !== `TODOS` && unit.risk !== appState.riskFilter) return false;
+        if (queryNorm) {
+          const hit = normalizeText(a.curso).includes(queryNorm) ||
+                      normalizeText(a.doc).includes(queryNorm) ||
+                      normalizeText(a.municipio).includes(queryNorm) ||
+                      normalizeText(unit.nome).includes(queryNorm);
+          if (!hit) return false;
+        }
+        return true;
+      });
+
+      const filteredProcessos = appState.processos.filter(p => {
+        const unit = summaries.find(s => s.cod === Number(p.cod));
+        if (!unit) return false;
+        if (appState.selectedEtec !== `TODAS` && Number(appState.selectedEtec) !== unit.cod) return false;
+        if (appState.riskFilter !== `TODOS` && unit.risk !== appState.riskFilter) return false;
+        if (queryNorm) {
+          const hit = normalizeText(p.processo).includes(queryNorm) ||
+                      normalizeText(p.tipoAto).includes(queryNorm) ||
+                      normalizeText(unit.nome).includes(queryNorm);
+          if (!hit) return false;
+        }
+        return true;
+      });
+
+      renderKpis(summaries, filteredSummaries, filteredAtos, filteredProcessos);
+      renderSelectedUnitPill(summaries);
+      renderMap(summaries, filteredSummaries);
+      renderEtecSemaphoreTable(filteredSummaries);
+      renderComparisonChart(summaries);
+      renderTimelineChart(filteredAtos);
+      renderCrossReferenceTable(filteredAtos);
+      renderEtecChipStrip(summaries);
+      renderUnitDossier(summaries);
+
+      if (window.lucide && typeof window.lucide.createIcons === `function`) {
+        window.lucide.createIcons();
+      }
+    }
+function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProcessos) {
+      const kpiUnidades = document.getElementById(`kpi-unidades`);
+      const kpiUnidadesSub = document.getElementById(`kpi-unidades-sub`);
+      const kpiTotalCursos = document.getElementById(`kpi-total-cursos`);
+      const kpiRegularesSub = document.getElementById(`kpi-regulares-sub`);
+      const kpiAVencer = document.getElementById(`kpi-a-vencer`);
+      const kpiAVencerSub = document.getElementById(`kpi-a-vencer-sub`);
+      const kpiVencidos = document.getElementById(`kpi-vencidos`);
+      const kpiVencidosSub = document.getElementById(`kpi-vencidos-sub`);
+      const kpiCobertura = document.getElementById(`kpi-cobertura`);
+      const kpiCoberturaSub = document.getElementById(`kpi-cobertura-sub`);
+
+      // 1. CÁLCULO PRÉVIO DE TODOS OS VALORES (Evita erro de variável antes da declaração)
+      const totalCursos = filteredAtos.length;
+      const vigentes = filteredAtos.filter(a => a.category === `VIGENTE`).length;
+      const aVencer = filteredAtos.filter(a => a.category === `A_VENCER`).length;
+      const vencCobertos = filteredAtos.filter(a => a.category === `VENCIDO_COBERTO`).length;
+      const vencDescobertos = filteredAtos.filter(a => a.category === `VENCIDO_DESCOBERTO`).length;
+      const totalVencidos = vencCobertos + vencDescobertos;
+      const vigentesPct = totalCursos > 0 ? Math.round((vigentes / totalCursos) * 100) : 0;
+      const vencidosPct = totalCursos > 0 ? Math.round((totalVencidos / totalCursos) * 100) : 0;
+
+      // CARD 1: Cursos Técnicos Monitorados (Total de Habilitações Cadastradas)
+      if (kpiTotalCursos) kpiTotalCursos.textContent = String(totalCursos);
+      if (kpiRegularesSub) kpiRegularesSub.textContent = `Catálogo Estadual · Atos e Habilitações no CEE-MT`;
+
+      // CARD 2: Atos Regulatórios Vigentes (184 vigentes plenos em tempo real)
+      if (kpiUnidades) kpiUnidades.textContent = String(vigentes);
+      if (kpiUnidadesSub) kpiUnidadesSub.textContent = `${vigentes} vigentes plenos (${vigentesPct}% regulares)`;
+
+      // CARD 3: Cursos a Vencer no Horizonte
+      if (kpiAVencer) kpiAVencer.textContent = String(aVencer);
+      if (kpiAVencerSub) kpiAVencerSub.textContent = `Vencimento em até ${appState.horizonDays} dias · Requer abertura no CEE-MT`;
+
+      // CARD 4: Cursos com Atos Vencidos
+      if (kpiVencidos) kpiVencidos.textContent = String(totalVencidos);
+      if (kpiVencidosSub) kpiVencidosSub.textContent = `${vencidosPct}% da rede monitorada · Requer regularização junto ao CEE-MT`;
+
+      // CARD 5: Quantidade Real de Processos Ativos no SIPE (115 Processos)
+      const activeProcsCount = filteredProcessos.filter(p => isActiveProcessStatus(p.situacao)).length;
+      if (kpiCobertura) kpiCobertura.textContent = String(activeProcsCount);
+      if (kpiCoberturaSub) kpiCoberturaSub.textContent = `${activeProcsCount} processos em análise no CEE-MT · Acompanhamento de regularização`;
+    }
+
+
+
+    function renderSelectedUnitPill(summaries) {
+      const el = document.getElementById(`selected-etec-indicator`);
+      if (!el) return;
+      if (appState.selectedEtec === `TODAS`) {
+        el.textContent = `EXIBINDO: TODAS AS 17 ETECs`;
+      } else {
+        const found = summaries.find(s => s.cod === Number(appState.selectedEtec));
+        el.textContent = found ? `FILTRO ATIVO: ${found.nome.toUpperCase()} (${found.cod})` : `TODAS AS 17 ETECs`;
+      }
+    }
+
+    // =========================================================================
+    // 7. D3 GEOREFERENCED VECTOR MAP OF MATO GROSSO
+    // =========================================================================
+    function getRiskColor(risk) {
+      if (risk === `VERMELHO`) return getCssToken(`--error`);
+      if (risk === `AMARELO`) return getCssToken(`--warning`);
+      return getCssToken(`--secondary`);
+    }
+
+    function renderMap(allSummaries, filteredSummaries) {
+      const container = document.getElementById(`map-container`);
+      const svgEl = document.getElementById(`mt-map-svg`);
+      if (!container || !svgEl || typeof d3 === `undefined`) return;
+
+      const width = container.clientWidth || 640;
+      const height = container.clientHeight || 500;
+      const filteredSet = new Set(filteredSummaries.map(s => s.cod));
+
+      const svg = d3.select(svgEl);
+      svg.attr(`viewBox`, `0 0 ${width} ${height}`);
+
+      // Initialize layers once or rebuild cleanly
+      svg.selectAll(`*`).remove();
+
+      const projection = d3.geoMercator().fitExtent(
+        [[36, 28], [width - 36, height - 28]],
+        MT_GEOJSON
+      );
+      const pathGen = d3.geoPath(projection);
+
+      const gRoot = svg.append(`g`).attr(`class`, `map-root`);
+
+      // Graticule
+      const graticule = d3.geoGraticule().step([2, 2]).extent([[-64, -20], [-48, -6]]);
+      gRoot.append(`path`)
+        .datum(graticule())
+        .attr(`d`, pathGen)
+        .attr(`fill`, `none`)
+        .attr(`stroke`, getCssToken(`--map-grid`))
+        .attr(`stroke-width`, 0.8)
+        .attr(`stroke-dasharray`, `3 3`);
+
+      // Mato Grosso polygon
+      gRoot.selectAll(`path.mt-state`)
+        .data(MT_GEOJSON.features)
+        .join(`path`)
+        .attr(`class`, `mt-state`)
+        .attr(`d`, pathGen)
+        .attr(`fill`, getCssToken(`--map-state`))
+        .attr(`stroke`, getCssToken(`--primary`))
+        .attr(`stroke-width`, 1.75);
+
+      // Neighboring states text labels
+      gRoot.selectAll(`text.neighbor-label`)
+        .data(NEIGHBOR_LABELS)
+        .join(`text`)
+        .attr(`class`, `neighbor-label`)
+        .attr(`x`, d => projection([d.lng, d.lat])[0])
+        .attr(`y`, d => projection([d.lng, d.lat])[1])
+        .attr(`text-anchor`, `middle`)
+        .attr(`font-family`, getCssToken(`--font-label`))
+        .attr(`font-size`, `10px`)
+        .attr(`font-weight`, `600`)
+        .attr(`letter-spacing`, `0.08em`)
+        .attr(`fill`, getCssToken(`--on-surface-variant`))
+        .attr(`opacity`, 0.7)
+        .text(d => d.text);
+
+      // Optional BR highways
+      if (appState.mapLayers.roads) {
+        const lineGen = d3.line()
+          .x(d => projection(d)[0])
+          .y(d => projection(d)[1]);
+
+        gRoot.selectAll(`path.mt-road`)
+          .data(MT_HIGHWAYS)
+          .join(`path`)
+          .attr(`class`, `mt-road`)
+          .attr(`d`, d => lineGen(d.coords))
+          .attr(`fill`, `none`)
+          .attr(`stroke`, getCssToken(`--map-road`))
+          .attr(`stroke-width`, 1.4)
+          .attr(`stroke-dasharray`, `5 3`);
+      }
+
+      // ETEC Nodes
+      const tooltip = document.getElementById(`map-tooltip`);
+      const nodes = gRoot.selectAll(`g.etec-node`)
+        .data(allSummaries, d => d.cod)
+        .join(`g`)
+        .attr(`class`, `etec-node`)
+        .attr(`transform`, d => {
+          const pt = projection([d.lng, d.lat]);
+          return `translate(${pt[0]}, ${pt[1]})`;
+        })
+        .attr(`tabindex`, `0`)
+        .attr(`role`, `button`)
+        .attr(`aria-label`, d => `${d.nome}: risco ${d.riskLabel}, ${d.totalCursos} cursos`)
+        .style(`cursor`, `pointer`)
+        .style(`opacity`, d => filteredSet.has(d.cod) ? 1 : 0.25);
+
+      // Selection / Critical halo ring
+      nodes.filter(d => d.risk === `VERMELHO` || Number(appState.selectedEtec) === d.cod || d.cod === appState.activeUnitDossier)
+        .append(`circle`)
+        .attr(`r`, d => (Number(appState.selectedEtec) === d.cod || d.cod === appState.activeUnitDossier) ? 14 : 12)
+        .attr(`fill`, `none`)
+        .attr(`stroke`, d => (Number(appState.selectedEtec) === d.cod) ? getCssToken(`--primary`) : getRiskColor(d.risk))
+        .attr(`stroke-width`, d => (Number(appState.selectedEtec) === d.cod) ? 2.2 : 1.5)
+        .attr(`stroke-dasharray`, d => d.risk === `VERMELHO` && Number(appState.selectedEtec) !== d.cod ? `3 2` : `none`);
+
+      // Main marker circle
+      nodes.append(`circle`)
+        .attr(`r`, d => {
+          const base = 5.5 + Math.min(d.totalCursos, 8) * 0.55;
+          return (Number(appState.selectedEtec) === d.cod) ? base + 1.5 : base;
+        })
+        .attr(`fill`, d => getRiskColor(d.risk))
+        .attr(`stroke`, getCssToken(`--surface-container-low`))
+        .attr(`stroke-width`, 2);
+
+      // City labels with smart offsets for Cuiabá/Várzea Grande & Campo Verde/Primavera/Poxoréu
+    const labelOffsets = {
+    3905: { dx: -12, dy: 4, anchor: "end" },    // Cuiabá (à esquerda da bolinha)
+    5107: { dx: 0, dy: 18, anchor: `middle` },   // Várzea Grande (centralizado logo ABAIXO da bolinha)
+    2392: { dx: 0, dy: -14, anchor: "middle" },  // Campo Verde
+    5003: { dx: 12, dy: -10, anchor: "start" }, // Primavera do Leste: direita e acima
+    1621: { dx: 12, dy: 16, anchor: "start" },  // Poxoréu: direita e abaixo
+    867: { dx: 14, dy: 6, anchor: "start" },    // Rondonópolis: direita alinhado
+    657: { dx: -12, dy: 4, anchor: "end" },     // Tangará da Serra: esquerda do ponto
+    4858: { dx: -12, dy: 4, anchor: "end" },    // Cáceres: esquerda do ponto
+    5008: { dx: 12, dy: 14, anchor: "start" }   // Matupá: abaixo de Alta Floresta
+};
+
+      if (appState.mapLayers.labels) {
+        nodes.append(`text`)
+          .attr(`x`, d => (labelOffsets[d.cod] ? labelOffsets[d.cod].dx : 10))
+          .attr(`y`, d => (labelOffsets[d.cod] ? labelOffsets[d.cod].dy : 4))
+          .attr(`text-anchor`, d => (labelOffsets[d.cod] ? labelOffsets[d.cod].anchor : `start`))
+          .attr(`font-family`, getCssToken(`--font-body`))
+          .attr(`font-size`, `11px`)
+          .attr(`font-weight`, d => (Number(appState.selectedEtec) === d.cod || d.risk === `VERMELHO`) ? `700` : `500`)
+          .attr(`fill`, getCssToken(`--on-surface`))
+          .attr(`paint-order`, `stroke`)
+          .attr(`stroke`, getCssToken(`--surface-container-low`))
+          .attr(`stroke-width`, 3)
+          .text(d => d.cidade);
+      }
+
+      function showTooltip(event, d) {
+        if (!tooltip) return;
+        const rect = container.getBoundingClientRect();
+        const pt = projection([d.lng, d.lat]);
+        let left = pt[0] + 16;
+        let top = pt[1] - 18;
+        if (left + 250 > rect.width) left = pt[0] - 255;
+        if (top + 130 > rect.height) top = rect.height - 135;
+        if (top < 8) top = 8;
+
+        const stampClass = d.risk === `VERMELHO` ? `stamp-vermelho` : (d.risk === `AMARELO` ? `stamp-amarelo` : `stamp-verde`);
+        tooltip.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;">
+            <strong style="font-family:var(--font-headline);">${escapeHtml(d.nome)}</strong>
+            <span class="stamp ${stampClass}">${escapeHtml(d.riskLabel)}</span>
+          </div>
+          <div class="mono-code" style="margin-bottom:6px;">Cód. SIGEDUCA ${d.cod} · ${escapeHtml(d.regiao)}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:0.78rem;">
+            <span>Vigentes: <strong>${d.vigentes}</strong></span>
+            <span>A Vencer: <strong>${d.aVencer}</strong></span>
+            <span>Vencidos: <strong>${d.totalVencidos}</strong></span>
+            <span>Processos: <strong>${d.activeProcessCount} ativos</strong></span>
+          </div>
+        `;
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+        tooltip.classList.add(`visible`);
+      }
+
+      function hideTooltip() {
+        if (tooltip) tooltip.classList.remove(`visible`);
+      }
+
+      nodes
+        .on(`mouseenter`, showTooltip)
+        .on(`focus`, showTooltip)
+        .on(`mouseleave`, hideTooltip)
+        .on(`blur`, hideTooltip)
+        .on(`click`, (event, d) => {
+          event.stopPropagation();
+          selectEtecUnit(d.cod);
+        })
+        .on(`keydown`, (event, d) => {
+          if (event.key === `Enter` || event.key === ` `) {
+            event.preventDefault();
+            selectEtecUnit(d.cod);
+          }
+        });
+
+      // Zoom behavior
+      mapZoomBehavior = d3.zoom()
+        .scaleExtent([1, 5])
+        .on(`zoom`, (event) => {
+          gRoot.attr(`transform`, event.transform);
+        });
+
+      mapSvgSelection = svg;
+      svg.call(mapZoomBehavior);
+    }
+
+    function zoomMapBy(factor) {
+      if (mapSvgSelection && mapZoomBehavior) {
+        mapSvgSelection.transition().duration(220).call(mapZoomBehavior.scaleBy, factor);
+      }
+    }
+
+    function resetMapZoom() {
+      if (mapSvgSelection && mapZoomBehavior) {
+        mapSvgSelection.transition().duration(250).call(mapZoomBehavior.transform, d3.zoomIdentity);
+      }
+    }
+
+    function toggleMapLayer(layerName) {
+      appState.mapLayers[layerName] = !appState.mapLayers[layerName];
+      const btn = document.getElementById(layerName === `roads` ? `btn-layer-roads` : `btn-layer-labels`);
+      if (btn) btn.setAttribute(`aria-pressed`, String(appState.mapLayers[layerName]));
+      renderAll();
+    }
+
+    // =========================================================================
+    // 8. ETEC SEMAPHORE TABLE
+    // =========================================================================
+    function renderEtecSemaphoreTable(filteredSummaries) {
+      const tbody = document.getElementById(`tbody-etec-semaphore`);
+      const countEl = document.getElementById(`etec-list-count`);
+      if (!tbody) return;
+
+      const sorted = [...filteredSummaries].sort((a, b) => {
+        if (a.riskRank !== b.riskRank) return a.riskRank - b.riskRank;
+        if (b.vencidosDescobertos !== a.vencidosDescobertos) return b.vencidosDescobertos - a.vencidosDescobertos;
+        return a.cidade.localeCompare(b.cidade, `pt-BR`);
+      });
+
+      if (countEl) countEl.textContent = `${sorted.length} unidades`;
+
+      if (sorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:var(--space-lg);color:var(--on-surface-variant);">Nenhuma ETEC corresponde aos filtros aplicados.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = sorted.map(s => {
+        const isSelected = Number(appState.selectedEtec) === s.cod || (appState.selectedEtec === `TODAS` && appState.activeUnitDossier === s.cod);
+        const stampCls = s.risk === `VERMELHO` ? `stamp-vermelho` : (s.risk === `AMARELO` ? `stamp-amarelo` : `stamp-verde`);
+        return `
+          <tr class="clickable-row ${isSelected ? `is-selected` : ``}" onclick="selectEtecUnit(${s.cod})">
+            <td>
+              <div style="font-weight:600;">${escapeHtml(s.cidade)}</div>
+              <div class="mono-code">Cód. ${s.cod}</div>
+            </td>
+            <td class="num">${s.vigentes}</td>
+            <td class="num">${s.aVencer}</td>
+            <td class="num" style="font-weight:${s.totalVencidos > 0 ? `700` : `400`};color:${s.vencidosDescobertos > 0 ? `var(--error-ink)` : `inherit`};">${s.totalVencidos}</td>
+            <td class="num">${s.activeProcessCount}</td>
+            <td><span class="stamp ${stampCls}">${escapeHtml(s.riskLabel)}</span></td>
+          </tr>
+        `;
+      }).join(``);
+    }
+
+    // =========================================================================
+    // 9. COMPARATIVE CHARTS (CHART.JS)
+    // =========================================================================
+    function renderComparisonChart(allSummaries) {
+      const canvas = document.getElementById(`chart-etec-comparison`);
+      if (!canvas || typeof Chart === `undefined`) return;
+
+      const sorted = [...allSummaries].sort((a, b) => {
+        if (a.riskRank !== b.riskRank) return a.riskRank - b.riskRank;
+        return b.totalCursos - a.totalCursos;
+      });
+
+      const labels = sorted.map(s => s.cidade);
+      const dataVigentes = sorted.map(s => s.vigentes);
+      const dataAVencer = sorted.map(s => s.aVencer);
+      const dataVencCobertos = sorted.map(s => s.vencidosCobertos);
+      const dataVencDescobertos = sorted.map(s => s.vencidosDescobertos);
+
+      const cPos = getCssToken(`--secondary`);
+      const cWarn = getCssToken(`--warning`);
+      const cInfo = getCssToken(`--data-4`);
+      const cErr = getCssToken(`--error`);
+      const cGrid = getCssToken(`--outline-variant`);
+      const cInk = getCssToken(`--on-surface`);
+      const cVar = getCssToken(`--on-surface-variant`);
+
+      if (chartComparisonInstance) {
+        chartComparisonInstance.destroy();
+      }
+
+      chartComparisonInstance = new Chart(canvas.getContext(`2d`), {
+        type: `bar`,
+        data: {
+          labels,
+          datasets: [
+            { label: `Vigentes`, data: dataVigentes, backgroundColor: cPos, borderWidth: 0 },
+            { label: `A Vencer (≤ ${appState.horizonDays}d)`, data: dataAVencer, backgroundColor: cWarn, borderWidth: 0 },
+            { label: `Vencidos c/ Processo`, data: dataVencCobertos, backgroundColor: cInfo, borderWidth: 0 },
+            { label: `Vencidos s/ Protocolo`, data: dataVencDescobertos, backgroundColor: cErr, borderWidth: 0 }
+          ]
+        },
+        options: {
+          indexAxis: `y`,
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0) {
+              const idx = elements[0].index;
+              const etec = sorted[idx];
+              if (etec) selectEtecUnit(etec.cod);
+            }
+          },
+          plugins: {
+            legend: {
+              position: `top`,
+              align: `start`,
+              labels: {
+                boxWidth: 12,
+                boxHeight: 12,
+                color: cInk,
+                font: { family: `Inter`, size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: getCssToken(`--primary`),
+              titleColor: getCssToken(`--on-primary`),
+              bodyColor: getCssToken(`--on-primary`),
+              cornerRadius: 2
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              beginAtZero: true,
+              ticks: { stepSize: 1, color: cVar, font: { family: `IBM Plex Mono`, size: 11 } },
+              grid: { color: cGrid }
+            },
+            y: {
+              stacked: true,
+              ticks: { color: cInk, font: { family: `Inter`, size: 11, weight: `500` } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTimelineChart(filteredAtos) {
+      const canvas = document.getElementById(`chart-expiry-timeline`);
+      if (!canvas || typeof Chart === `undefined`) return;
+            // Atualiza o nome da ETEC / Cidade que o gráfico está representando
+      const badgeScope = document.getElementById(`timeline-scope-badge`);
+      if (badgeScope) {
+        if (appState.selectedEtec === `TODAS`) {
+          badgeScope.textContent = `REDE ESTADUAL (17 ETECs)`;
+          badgeScope.style.background = `var(--surface-container-high, #e2e8f0)`;
+          badgeScope.style.color = `var(--on-surface, #1e293b)`;
+        } else {
+          const unit = ETECS_MASTER.find(e => e.cod === Number(appState.selectedEtec));
+          badgeScope.textContent = unit ? `${unit.nome.toUpperCase()} (${unit.cod})` : `ETEC SELECIONADA`;
+          badgeScope.style.background = `rgba(37, 99, 235, 0.12)`;
+          badgeScope.style.color = `#1d4ed8`;
+        }
+      }
+
+      const buckets = [
+        { key: `VENCIDOS`, label: `Já Vencidos`, count: 0, color: getCssToken(`--error`) },
+        { key: `2026-S2`, label: `Nov–Dez 2026`, count: 0, color: getCssToken(`--warning`) },
+        { key: `2027-S1`, label: `1º Sem 2027`, count: 0, color: getCssToken(`--warning`) },
+        { key: `2027-S2`, label: `2º Sem 2027`, count: 0, color: getCssToken(`--data-4`) },
+        { key: `2028-S1`, label: `1º Sem 2028`, count: 0, color: getCssToken(`--secondary`) },
+        { key: `2028-S2`, label: `2º Sem 2028`, count: 0, color: getCssToken(`--secondary`) },
+        { key: `2029+`,   label: `2029 em diante`, count: 0, color: getCssToken(`--primary`) }
+      ];
+
+      filteredAtos.forEach(a => {
+        if (!a.endDate) return;
+        if (a.daysRemaining !== null && a.daysRemaining < 0) {
+          buckets[0].count += 1;
+          return;
+        }
+        const y = a.endDate.getFullYear();
+        const m = a.endDate.getMonth() + 1;
+        if (y === 2026) buckets[1].count += 1;
+        else if (y === 2027 && m <= 6) buckets[2].count += 1;
+        else if (y === 2027 && m > 6) buckets[3].count += 1;
+        else if (y === 2028 && m <= 6) buckets[4].count += 1;
+        else if (y === 2028 && m > 6) buckets[5].count += 1;
+        else buckets[6].count += 1;
+      });
+
+      const cGrid = getCssToken(`--outline-variant`);
+      const cInk = getCssToken(`--on-surface`);
+      const cVar = getCssToken(`--on-surface-variant`);
+
+      if (chartTimelineInstance) {
+        chartTimelineInstance.destroy();
+      }
+
+      chartTimelineInstance = new Chart(canvas.getContext(`2d`), {
+        type: `bar`,
+        data: {
+          labels: buckets.map(b => b.label),
+          datasets: [{
+            label: `Cursos por Janela de Vencimento`,
+            data: buckets.map(b => b.count),
+            backgroundColor: buckets.map(b => b.color),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: getCssToken(`--primary`),
+              titleColor: getCssToken(`--on-primary`),
+              bodyColor: getCssToken(`--on-primary`),
+              cornerRadius: 2
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 2, color: cVar, font: { family: `IBM Plex Mono`, size: 11 } },
+              grid: { color: cGrid }
+            },
+            x: {
+              ticks: { color: cInk, font: { family: `Inter`, size: 11 } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+     // =========================================================================
     // 10. CROSS-REFERENCE MATRIX (ATOS x SISTEMÁTICA)
     // =========================================================================
     function renderCrossReferenceTable(filteredAtos) {
@@ -84,3 +2976,552 @@
         `;
       }).join(``);
     }
+
+    // =========================================================================
+    // 11. OFFICIAL NOTICE & QUICK PROTOCOL HANDLERS
+    // =========================================================================
+    function findAtoByKey(encodedKey) {
+      const parts = decodeURIComponent(encodedKey).split(`|`);
+      const cod = Number(parts[0]);
+      const mun = parts[1];
+      const curso = parts[2];
+      return appState.atos.find(a => Number(a.cod) === cod && a.municipio === mun && a.curso === curso);
+    }
+
+    function openOfficialNotice(encodedKey) {
+      const ato = findAtoByKey(encodedKey);
+      if (!ato) return;
+      currentNoticeRecord = ato;
+      const drawer = document.getElementById(`notice-drawer`);
+      const body = document.getElementById(`notice-letter-body`);
+      const feedback = document.getElementById(`notice-copy-feedback`);
+      if (feedback) feedback.classList.remove(`show`);
+
+      if (body) {
+        body.innerHTML = `
+          <p><strong>Assunto:</strong> COMUNICADO: Vencimento de Ato Autorizativo - SECITECI/MT</p>
+          <p>Prezados (as) Representantes da Mantenedora,</p>
+          <p>A Secretaria de Estado de Ciência, Tecnologia e Inovação de Mato Grosso – SECITECI/MT, por meio da Coordenadoria de Fiscalização, informa que, conforme registros constantes no sistema de acompanhamento da Educação Profissional Técnica de Nível Médio, foi identificado o vencimento do ato autorizativo referente à instituição de ensino abaixo identificada:</p>
+          <div style="background:var(--surface-container);padding:var(--space-md);border-left:3px solid var(--outline);margin:var(--space-md) 0;">
+            <strong>Instituição:</strong> ${escapeHtml(ato.escola)}<br>
+            <strong>Município:</strong> ${escapeHtml(ato.municipio)}<br>
+            <strong>Curso:</strong> ${escapeHtml(ato.curso)}<br>
+            <strong>Ato / Documento:</strong> ${escapeHtml(ato.ato)} - ${escapeHtml(ato.doc)}<br>
+            <strong>Validade expirada:</strong> ${escapeHtml(ato.validade)}
+          </div>
+          <p>Diante do exposto, orientamos essa mantenedora a verificar a situação regulatória da instituição e, caso haja interesse na continuidade da oferta dos cursos, adotar as providências necessárias junto ao Conselho Estadual de Educação de Mato Grosso – CEE/MT, observando os procedimentos e prazos estabelecidos na legislação educacional vigente.</p>
+          <p>Ressaltamos que a oferta de cursos de Educação Profissional Técnica de Nível Médio deve estar amparada por ato autorizativo válido, expedido pelo órgão competente, não sendo este comunicado substitutivo de notificação formal ou de eventual procedimento administrativo de fiscalização.</p>
+          <p>Em caso de dúvidas, a mantenedora poderá entrar em contato com a Coordenadoria de Fiscalização pelo e-mail: <code>coordenadoriadefiscalizacao@secitec.mt.gov.br</code>.</p>
+          <p>Atenciosamente,<br><strong>COORDENADORIA DE FISCALIZAÇÃO</strong><br>Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT</p>
+        `;
+      }
+      if (drawer) {
+        drawer.classList.add(`open`);
+        drawer.scrollIntoView({ behavior: `smooth`, block: `nearest` });
+      }
+    }
+
+    function closeNoticeDrawer() {
+      const drawer = document.getElementById(`notice-drawer`);
+      if (drawer) drawer.classList.remove(`open`);
+    }
+
+    async function copyOfficialNotice() {
+      const body = document.getElementById(`notice-letter-body`);
+      const feedback = document.getElementById(`notice-copy-feedback`);
+      if (!body) return;
+      const text = body.innerText;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        }
+        if (feedback) {
+          feedback.textContent = `Minuta do comunicado oficial copiada para a área de transferência.`;
+          feedback.classList.add(`show`);
+        }
+      } catch (err) {
+        if (feedback) {
+          feedback.textContent = `Selecione o texto acima e pressione Ctrl+C para copiar a minuta.`;
+          feedback.classList.add(`show`);
+        }
+      }
+    }
+
+    async function registerQuickProtocol(encodedKey) {
+      const ato = findAtoByKey(encodedKey);
+      if (!ato) return;
+      const etec = ETECS_MASTER.find(e => e.cod === Number(ato.cod));
+      const nextNum = String(3100 + appState.processos.length).padStart(5, `0`);
+      const newProc = {
+        cod: Number(ato.cod),
+        instituicao: ato.escola,
+        ano: `2026`,
+        processo: `${nextNum}/2026`,
+        tipoAto: `RENOVAÇÃO DE AUTORIZAÇÃO - ${ato.curso}`,
+        cidade: etec ? etec.cidade : ato.municipio,
+        situacao: `EM ANDAMENTO`,
+        setor: `COORDENADORIA DE FISCALIZAÇÃO - SECITECI`,
+        responsavel: `FISCALIZAÇÃO SECITECI (REGISTRO MANUAL)`,
+        protocoladoEm: `18/11/2026 15:30`
+      };
+      appState.processos.unshift(newProc);
+      appState.activeUnitDossier = Number(ato.cod);
+      await persistState();
+      renderAll();
+    }
+
+    // =========================================================================
+    // 12. UNIT DOSSIER (SECTION 04)
+    // =========================================================================
+    function renderEtecChipStrip(summaries) {
+      const strip = document.getElementById(`etec-chip-strip`);
+      if (!strip) return;
+      const targetCod = appState.selectedEtec !== `TODAS` ? Number(appState.selectedEtec) : appState.activeUnitDossier;
+
+      strip.innerHTML = summaries.map(s => {
+        const dotCls = s.risk === `VERMELHO` ? `dot-vermelho` : (s.risk === `AMARELO` ? `dot-amarelo` : `dot-verde`);
+        const isActive = s.cod === targetCod;
+        return `
+          <button type="button" class="etec-chip ${isActive ? `active` : ``}" onclick="focusUnitDossier(${s.cod})">
+            <span class="dot-swatch ${dotCls}" aria-hidden="true"></span>
+            <span>${escapeHtml(s.cidade)}</span>
+          </button>
+        `;
+      }).join(``);
+    }
+
+    function renderUnitDossier(summaries) {
+      const targetCod = appState.selectedEtec !== `TODAS` ? Number(appState.selectedEtec) : appState.activeUnitDossier;
+      const unit = summaries.find(s => s.cod === targetCod) || summaries[0];
+      if (!unit) return;
+
+      const metaEl = document.getElementById(`dossier-code-meta`);
+      const nameEl = document.getElementById(`dossier-etec-name`);
+      const badgesEl = document.getElementById(`dossier-status-badges`);
+
+      if (metaEl) metaEl.textContent = `CÓDIGO SIGEDUCA #${unit.cod} · POLO ${unit.cidade} · MESORREGIÃO ${unit.regiao.toUpperCase()}`;
+      if (nameEl) nameEl.textContent = unit.nomeCompleto;
+
+      if (badgesEl) {
+        const stampCls = unit.risk === `VERMELHO` ? `stamp-vermelho` : (unit.risk === `AMARELO` ? `stamp-amarelo` : `stamp-verde`);
+        badgesEl.innerHTML = `
+          <span class="stamp ${stampCls}">SEMÁFORO: ${escapeHtml(unit.riskLabel)}</span>
+          <span class="stamp stamp-brass">CONFORMIDADE: ${unit.regularPct}%</span>
+        `;
+      }
+
+      const kTot = document.getElementById(`unit-kpi-total`);
+      const kVig = document.getElementById(`unit-kpi-vigentes`);
+      const kAve = document.getElementById(`unit-kpi-avencer`);
+      const kVen = document.getElementById(`unit-kpi-vencidos`);
+      const kPro = document.getElementById(`unit-kpi-processos`);
+
+      if (kTot) kTot.textContent = String(unit.totalCursos);
+      if (kVig) kVig.textContent = String(unit.vigentes);
+      if (kAve) kAve.textContent = String(unit.aVencer);
+      if (kVen) kVen.textContent = String(unit.totalVencidos);
+      if (kPro) kPro.textContent = String(unit.processos.length);
+
+      // Render Atos table
+      const tbodyAtos = document.getElementById(`tbody-dossier-atos`);
+      if (tbodyAtos) {
+        tbodyAtos.innerHTML = unit.atos.map(a => {
+          let stBadge = `<span class="stamp stamp-verde">Vigente</span>`;
+          if (a.category === `A_VENCER`) stBadge = `<span class="stamp stamp-amarelo">A Vencer</span>`
+          else if (a.category === `VENCIDO_COBERTO`) stBadge = `<span class="stamp stamp-info">Vencido · Processo Ativo</span>`;
+          else if (a.category === `VENCIDO_DESCOBERTO`) stBadge = `<span class="stamp stamp-vermelho">Vencido · Sem Protocolo</span>`;
+
+          return `
+            <tr>
+              <td>${escapeHtml(a.municipio)}</td>
+              <td><strong>${escapeHtml(a.curso)}</strong></td>
+              <td>${escapeHtml(a.ato)}</td>
+              <td><div>${escapeHtml(a.doc)}</div><div class="mono-code">${escapeHtml(a.modelo)}</div></td>
+              <td class="mono-code">${escapeHtml(a.validade)}</td>
+              <td class="mono-code">${escapeHtml(a.pub)} (p.${escapeHtml(a.pag)})</td>
+              <td>${stBadge}</td>
+            </tr>
+          `;
+        }).join(``);
+      }
+
+      // Render Processos table
+      const tbodyProc = document.getElementById(`tbody-dossier-processos`);
+      if (tbodyProc) {
+        if (unit.processos.length === 0) {
+          tbodyProc.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:var(--space-md);color:var(--on-surface-variant);">Nenhum processo protocolado encontrado na Sistemática para esta ETEC.</td></tr>`;
+        } else {
+          tbodyProc.innerHTML = unit.processos.map(p => {
+            const active = isActiveProcessStatus(p.situacao);
+            const pStamp = active ? `stamp-amarelo` : `stamp-verde`;
+            return `
+              <tr>
+                <td class="mono-code">${escapeHtml(p.ano)}</td>
+                <td class="mono-code" style="font-weight:600;color:var(--primary);">${escapeHtml(p.processo)}</td>
+                <td>${escapeHtml(p.tipoAto)}</td>
+                <td>${escapeHtml(p.cidade)}</td>
+                <td><span class="stamp ${pStamp}">${escapeHtml(p.situacao)}</span></td>
+                <td>${escapeHtml(p.setor)}</td>
+                <td>${escapeHtml(p.responsavel)}</td>
+                <td class="mono-code">${escapeHtml(p.protocoladoEm)}</td>
+              </tr>
+            `;
+          }).join(``);
+        }
+      }
+
+      // Render Diligences
+      renderDiligenceList(unit.cod);
+    }
+
+    function renderDiligenceList(cod) {
+      const notes = appState.diligencias[cod] || [];
+      const countEl = document.getElementById(`diligencias-count`);
+      const listEl = document.getElementById(`diligence-notes-list`);
+      if (countEl) countEl.textContent = String(notes.length);
+      if (!listEl) return;
+
+      if (notes.length === 0) {
+        listEl.innerHTML = `<div style="padding:var(--space-md);background:var(--surface-container);color:var(--on-surface-variant);font-size:0.875rem;">Nenhuma diligência registrada para esta unidade escolar. Utilize o formulário ao lado para formalizar encaminhamentos ou vistorias.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = notes.map(n => `
+        <div class="note-item">
+          <div>
+            <div class="mono-code" style="margin-bottom:2px;">${escapeHtml(n.date)} · <strong>${escapeHtml(n.type)}</strong></div>
+            <div style="font-size:0.875rem;">${escapeHtml(n.text)}</div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="deleteDiligenceNote(${cod}, '${escapeHtml(n.id)}')" aria-label="Remover anotação">Remover</button>
+        </div>
+      `).join(``);
+    }
+
+    async function addDiligenceNote() {
+      const targetCod = appState.selectedEtec !== `TODAS` ? Number(appState.selectedEtec) : appState.activeUnitDossier;
+      const typeEl = document.getElementById(`note-type`);
+      const textEl = document.getElementById(`note-text`);
+      const fbEl = document.getElementById(`note-feedback`);
+      if (!typeEl || !textEl) return;
+
+      const textVal = textEl.value.trim();
+      if (textVal.length < 10) {
+        if (fbEl) {
+          fbEl.textContent = `Informe um parecer ou observação com pelo menos 10 caracteres.`;
+          fbEl.classList.add(`show`);
+        }
+        return;
+      }
+
+      if (!appState.diligencias[targetCod]) appState.diligencias[targetCod] = [];
+      appState.diligencias[targetCod].unshift({
+        id: `dil-${Date.now()}`,
+        date: `18/11/2026`,
+        type: typeEl.value,
+        text: textVal
+      });
+      textEl.value = ``;
+      if (fbEl) {
+        fbEl.textContent = `Diligência registrada no dossiê da unidade #${targetCod}.`;
+        fbEl.classList.add(`show`);
+      }
+      await persistState();
+      renderDiligenceList(targetCod);
+    }
+
+    async function deleteDiligenceNote(cod, noteId) {
+      if (!appState.diligencias[cod]) return;
+      appState.diligencias[cod] = appState.diligencias[cod].filter(n => n.id !== noteId);
+      await persistState();
+      renderDiligenceList(cod);
+    }
+
+    // =========================================================================
+    // 13. INTERACTION & TAB HANDLERS (HOISTED FUNCTIONS)
+    // =========================================================================
+    function onFilterChange() {
+      const selEtec = document.getElementById(`filter-etec`);
+      const selRisk = document.getElementById(`filter-risk`);
+      const selHorizon = document.getElementById(`filter-horizon`);
+      const inpSearch = document.getElementById(`filter-search`);
+
+      if (selEtec) {
+        appState.selectedEtec = selEtec.value;
+        if (selEtec.value !== `TODAS`) appState.activeUnitDossier = Number(selEtec.value);
+      }
+      if (selRisk) appState.riskFilter = selRisk.value;
+      if (selHorizon) appState.horizonDays = Number(selHorizon.value) || 180;
+      if (inpSearch) appState.searchQuery = inpSearch.value;
+
+      persistState();
+      renderAll();
+    }
+
+    function clearAllFilters() {
+      appState.selectedEtec = `TODAS`;
+      appState.riskFilter = `TODOS`;
+      appState.horizonDays = 180;
+      appState.searchQuery = ``;
+      syncFilterControlsFromState();
+      persistState();
+      renderAll();
+    }
+
+    function selectEtecUnit(cod) {
+      const numCod = Number(cod);
+      if (Number(appState.selectedEtec) === numCod) {
+        appState.selectedEtec = `TODAS`;
+      } else {
+        appState.selectedEtec = String(numCod);
+        appState.activeUnitDossier = numCod;
+      }
+      syncFilterControlsFromState();
+      persistState();
+      renderAll();
+    }
+
+    function focusUnitDossier(cod) {
+      appState.activeUnitDossier = Number(cod);
+      if (appState.selectedEtec !== `TODAS`) {
+        appState.selectedEtec = String(cod);
+        syncFilterControlsFromState();
+      }
+      persistState();
+      renderAll();
+    }
+
+    function setCrossTab(tabKey, btnEl) {
+      appState.crossTab = tabKey;
+      const buttons = document.querySelectorAll(`[data-cross-tab]`);
+      buttons.forEach(b => b.classList.remove(`active`));
+      if (btnEl) btnEl.classList.add(`active`);
+      persistState();
+      renderAll();
+    }
+
+    function setDossierTab(tabKey, btnEl) {
+      appState.dossierTab = tabKey;
+      const buttons = document.querySelectorAll(`[data-dossier-tab]`);
+      buttons.forEach(b => b.classList.remove(`active`));
+      if (btnEl) btnEl.classList.add(`active`);
+
+      [`atos`, `processos`, `diligencias`].forEach(k => {
+        const panel = document.getElementById(`dossier-tab-${k}`);
+        if (panel) panel.style.display = (k === tabKey) ? `block` : `none`;
+      });
+      persistState();
+    }
+
+    // =========================================================================
+    // 14. IMPORT / EXPORT DATA HANDLERS
+    // =========================================================================
+    function toggleImportDrawer() {
+      const d = document.getElementById(`import-drawer`);
+      if (d) d.classList.toggle(`open`);
+    }
+
+    async function applyImportedJson() {
+      const typeSel = document.getElementById(`import-type-select`);
+      const textEl = document.getElementById(`import-json-input`);
+      const fbEl = document.getElementById(`import-feedback`);
+      if (!typeSel || !textEl || !fbEl) return;
+
+      const raw = textEl.value.trim();
+      if (!raw) {
+        fbEl.textContent = `Cole uma matriz JSON válida antes de aplicar.`;
+        fbEl.classList.add(`show`);
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || parsed.length < 2 || !Array.isArray(parsed[0])) {
+          throw new Error(`Formato esperado: array de linhas com cabeçalho na posição 0.`);
+        }
+        const rows = parsed.slice(1);
+        if (typeSel.value === `atos`) {
+          const mapped = rows.map(r => ({
+            cod: Number(r[0]) || 0,
+            escola: String(r[1] || ``),
+            municipio: String(r[2] || ``),
+            curso: String(r[3] || ``),
+            ato: String(r[4] || ``),
+            situacao: String(r[5] || ``),
+            modelo: String(r[6] || ``),
+            doc: String(r[7] || ``),
+            validade: String(r[8] || ``),
+            pub: String(r[9] || ``),
+            pag: String(r[10] || ``)
+          })).filter(r => r.cod > 0 && r.curso);
+          if (mapped.length === 0) throw new Error(`Nenhum registro válido de Atos identificado.`);
+          appState.atos = mapped;
+          appState.customSourceLabel = `IMPORTAÇÃO MANUAL (${mapped.length} ATOS)`;
+        } else {
+          const mappedP = rows.map(r => {
+            const instNorm = normalizeText(r[0]);
+            const cityNorm = normalizeText(r[4]);
+            const match = ETECS_MASTER.find(e => instNorm.includes(e.key) || cityNorm.includes(e.key));
+            return {
+              cod: match ? match.cod : 0,
+              instituicao: String(r[0] || ``),
+              ano: String(r[1] || ``),
+              processo: String(r[2] || ``),
+              tipoAto: String(r[3] || ``),
+              cidade: String(r[4] || ``),
+              situacao: String(r[5] || ``),
+              setor: String(r[6] || ``),
+              responsavel: String(r[7] || ``),
+              protocoladoEm: String(r[8] || ``)
+            };
+          }).filter(r => r.cod > 0 && r.processo);
+          if (mappedP.length === 0) throw new Error(`Nenhum processo associado às 17 ETECs encontrado.`);
+          appState.processos = mappedP;
+          appState.customSourceLabel = `IMPORTAÇÃO MANUAL (${mappedP.length} PROCESSOS)`;
+        }
+
+        fbEl.textContent = `Carga aplicada com sucesso! Painel atualizado com os dados importados.`;
+        fbEl.classList.add(`show`);
+        syncFilterControlsFromState();
+        await persistState();
+        renderAll();
+      } catch (err) {
+        fbEl.textContent = `Erro ao processar JSON: ${err.message}`;
+        fbEl.classList.add(`show`);
+      }
+    }
+
+    async function resetToBaseline(btn) {
+      const fbEl = document.getElementById(`import-feedback`);
+      if (btn && btn.dataset.armed !== `true`) {
+        btn.dataset.armed = `true`;
+        btn.textContent = `Clique novamente para confirmar`;
+        setTimeout(() => {
+          if (btn) {
+            btn.dataset.armed = `false`;
+            btn.textContent = `Restaurar Base Referencial`;
+          }
+        }, 4000);
+        return;
+      }
+      if (btn) {
+        btn.dataset.armed = `false`;
+        btn.textContent = `Restaurar Base Referencial`;
+      }
+      appState.atos = buildBaselineAtos();
+      appState.processos = buildBaselineProcessos();
+      appState.customSourceLabel = `BASE REFERENCIAL SIGEDUCA/SIPE`;
+      if (fbEl) {
+        fbEl.textContent = `Base referencial das 17 ETECs restaurada.`;
+        fbEl.classList.add(`show`);
+      }
+      syncFilterControlsFromState();
+      await persistState();
+      renderAll();
+    }
+
+    function exportFilteredCsv() {
+      const classified = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
+      const filtered = classified.filter(a => {
+        if (appState.selectedEtec !== `TODAS` && Number(appState.selectedEtec) !== Number(a.cod)) return false;
+        return true;
+      });
+
+      const header = [`Codigo_ETEC`, `Instituicao`, `Municipio_Curso`, `Curso`, `Ato_Regulatorio`, `Documento`, `Validade`, `Dias_Restantes`, `Classificacao_Risco`, `Processo_SIPE`, `Situacao_Processo`];
+      const csvRows = [header.join(`;`)];
+      filtered.forEach(a => {
+        const proc = a.matchedProcess ? a.matchedProcess.processo : `SEM PROTOCOLO`;
+        const procSit = a.matchedProcess ? a.matchedProcess.situacao : `-`;
+        const cols = [
+          a.cod, a.escola, a.municipio, a.curso, a.ato, a.doc, a.validade,
+          a.daysRemaining !== null ? a.daysRemaining : ``,
+          a.category, proc, procSit
+        ].map(v => `"${String(v).replace(/"/g, `""`)}"`);
+        csvRows.push(cols.join(`;`));
+      });
+      const csvString = `\uFEFF` + csvRows.join(`\n`);
+
+      // Download universal compatível com Web Browser e ambiente Studio
+      try {
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'SIPE_Flow_MT_Relatorio_ETECs.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.warn('Download padrão falhou, tentando fallback:', e);
+      }
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === `function`) {
+        window.notebookAppApi.triggerFileDownload({
+          content: csvString,
+          contentType: `text/csv`,
+          encoding: `UTF-8`,
+          filename: `SIPE_Flow_MT_Relatorio_ETECs.csv`
+        });
+      }
+    }
+
+    // =========================================================================
+    // 15. INITIALIZATION
+    // =========================================================================
+    async function initApp() {
+      // 1. Carrega estados locais persistidos (se houver)
+      await loadSavedState();
+
+      // 2. CARREGAMENTO AUTOMÁTICO AO ABRIR O SITE (377 CURSOS DA PLANILHA REAL)
+      // Faz o carregamento direto da planilha online sem precisar clicar no botão
+      const ok = await carregarDadosPlanilhaOnline();
+      
+      const badge = document.getElementById('data-source-badge');
+      if (ok) {
+        const totalAtos = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
+        const totalProc = (appState.processos && appState.processos.length) ? appState.processos.length : 795;
+        if (badge) {
+          badge.innerHTML = 'FONTE: <strong>SIGEDUCA / CEE-MT</strong> (' + totalAtos + ' ATOS · ' + totalProc + ' PROCESSOS SIPE)';
+        }
+      }
+
+      // 3. Atualiza data-base no cabeçalho se houver elemento
+      var elData = document.getElementById('data-base-val');
+      if (elData) {
+        elData.textContent = new Date().toLocaleDateString('pt-BR');
+      }
+
+      // 4. Popula o seletor das 17 ETECs
+      populateEtecDropdown();
+      syncFilterControlsFromState();
+
+      // 5. Sincroniza abas ativas
+      const crossBtn = document.querySelector(`[data-cross-tab="${appState.crossTab}"]`);
+      if (crossBtn) setCrossTab(appState.crossTab, crossBtn);
+      const dossierBtn = document.querySelector(`[data-dossier-tab="${appState.dossierTab}"]`);
+      if (dossierBtn) setDossierTab(appState.dossierTab, dossierBtn);
+
+      // 6. Renderiza todos os KPIs, gráficos e mapa D3 já com os 377 cursos
+      renderAll();
+
+      // 7. Re-renderiza o mapa no redimensionamento da janela
+      let resizeTimer = null;
+      window.addEventListener(`resize`, () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          const classifiedAtos = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
+          const summaries = computeEtecSummaries(classifiedAtos, appState.processos);
+          renderMap(summaries, summaries);
+        }, 200);
+      });
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
+        window.notebookAppApi.notifyAppReady();
+      }
+    }
+
+    document.addEventListener(`DOMContentLoaded`, initApp);
+  </script>
+</body>
+</html>
