@@ -1766,35 +1766,73 @@ async function carregarDadosPlanilhaOnline() {
               continue; // Ignora finalizados e arquivados
             }
 
-            // 2. FILTRO DE CONTEÚDO: Estritamente Educação Profissional conforme as 4 regras
-            if (!isEducacaoProfissionalProcesso(tipoAto)) {
-              continue; // Ignora processos da educação básica
-            }
-
-            // 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC
+// 3. IDENTIFICAÇÃO E ASSOCIAÇÃO À RESPECTIVA ETEC
             let codEtec = 0;
-            const matchCod = instTexto.match(/\b(5002|617|1437|4858|2392|3905|867|321|5009|3337|5008|1621|5003|5010|657|5107|656)\b/);
+            const matchCod = instTexto.match(/\b(5002|617|1437|4858|2392|3905|867|321|5009|3337|5008|1621|5003|5010|657|5107|656|96)\b/);
             if (matchCod) {
               codEtec = parseInt(matchCod[1], 10);
+              if (codEtec === 96) codEtec = 867; // 96 é código legado da ETEC de Rondonópolis
             } else if (typeof ETECS_MASTER !== 'undefined') {
               const instNorm = normalizeStr(instTexto);
               const cidNorm = normalizeStr(cidade);
+              const linhaNorm = instNorm + ' ' + cidNorm;
+
+              // 1. Busca Direta nas 17 Sedes
               const etec = ETECS_MASTER.find(e => {
                 const k = normalizeStr(e.key);
                 return instNorm.includes(k) || cidNorm.includes(k) || normalizeStr(e.cidade) === cidNorm;
               });
-              if (etec) codEtec = etec.cod;
+
+              if (etec) {
+                codEtec = etec.cod;
+              } else {
+                // 2. Mapeamento Oficial de Polos de Extensão e Turmas Fora de Sede
+                if (linhaNorm.includes('PEIXOTO') || linhaNorm.includes('GUARANTA') || linhaNorm.includes('TERRA NOVA')) {
+                  codEtec = 5008; // Polo Matupá
+                } else if (linhaNorm.includes('XAVANTINA') || linhaNorm.includes('ARAGUAIA') || linhaNorm.includes('CANARANA')) {
+                  codEtec = 1437; // Polo Barra do Garças
+                } else if (linhaNorm.includes('PARANATINGA') || linhaNorm.includes('CAMPO VERDE')) {
+                  codEtec = 5003; // Polo Primavera do Leste
+                } else if (linhaNorm.includes('CLAUDIA') || linhaNorm.includes('VERA') || linhaNorm.includes('SANTA CARMEM') || linhaNorm.includes('COLIDER')) {
+                  codEtec = 656;  // Polo Sinop
+                } else if (linhaNorm.includes('PONTES E LACERDA') || linhaNorm.includes('JAURU') || linhaNorm.includes('MIRASSOL')) {
+                  codEtec = 4858; // Polo Cáceres
+                } else if (linhaNorm.includes('ARENAPOLIS') || linhaNorm.includes('NOVA OLIMPIA') || linhaNorm.includes('BARRA DO BUGRES')) {
+                  codEtec = 657;  // Polo Tangará da Serra
+                } else if (linhaNorm.includes('TAPURAH') || linhaNorm.includes('IPIRANGA') || linhaNorm.includes('ITANHANGA')) {
+                  codEtec = 3337; // Polo Lucas do Rio Verde
+                } else if (linhaNorm.includes('NOVA MUTUM') || linhaNorm.includes('NOVA UBIRATA')) {
+                  codEtec = 5010; // Polo Sorriso
+                } else if (linhaNorm.includes('ALTO ARAGUAIA') || linhaNorm.includes('GUIRATINGA') || linhaNorm.includes('PEDRA PRETA') || linhaNorm.includes('JACIARA')) {
+                  codEtec = 867;  // Polo Rondonópolis
+                } else if (linhaNorm.includes('BRASNORTE') || linhaNorm.includes('NOVO HORIZONTE') || linhaNorm.includes('TABAPORA')) {
+                  codEtec = 5009; // Polo Juara
+                } else if (linhaNorm.includes('PARANITA') || linhaNorm.includes('APIACAS') || linhaNorm.includes('MONTE VERDE')) {
+                  codEtec = 617;  // Polo Alta Floresta
+                } else if (linhaNorm.includes('QUERENCIA') || linhaNorm.includes('CANABRAVA') || linhaNorm.includes('CONFRESA') || linhaNorm.includes('RIBEIRAO CASCALHEIRA')) {
+                  codEtec = 5002; // Polo Água Boa
+                } else if (linhaNorm.includes('NOBRES') || linhaNorm.includes('ROSARIO OESTE') || linhaNorm.includes('ALTO PARAGUAI')) {
+                  codEtec = 321;  // Polo Diamantino
+                } else if (linhaNorm.includes('SANTO ANTONIO') || linhaNorm.includes('CHAPADA') || linhaNorm.includes('POCONE') || linhaNorm.includes('LIVRAMENTO') || linhaNorm.includes('SECITECI') || linhaNorm.includes('SEDUC') || linhaNorm.includes('ESTADO DE MATO GROSSO')) {
+                  codEtec = 3905; // Polo Cuiabá / Órgão Central
+                } else {
+                  // O robô do GitHub extrai apenas os processos da Rede Estadual ETEC.
+                  // Nenhum processo ativo é descartado: associa ao polo estadual de referência (Cuiabá)
+                  codEtec = 3905;
+                }
+              }
             }
 
-            if (codEtec === 0) continue; // Descarta se não pertencer a nenhuma das 17 ETECs
+            // Garante o vínculo com os dados da ETEC encontrada
+            const etecRef = ETECS_MASTER.find(e => e.cod === codEtec) || ETECS_MASTER.find(e => e.cod === 3905);
 
             novosProcessos.push({
               cod: codEtec,
-              instituicao: instTexto || ('ETEC ' + cidade),
+              instituicao: instTexto || etecRef.nomeCompleto,
               ano: ano || (new Date().getFullYear().toString()),
               processo: numProc,
               tipoAto: tipoAto,
-              cidade: cidade || 'MATO GROSSO',
+              cidade: cidade || etecRef.cidade,
               situacao: situacao,
               setor: setor,
               responsavel: responsavel,
