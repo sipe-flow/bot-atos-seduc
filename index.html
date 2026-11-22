@@ -1169,9 +1169,7 @@
             Distribuição espacial pelo Estado de Mato Grosso com coordenadas geodésicas dos municípios-polo. Clique em qualquer unidade no mapa ou na matriz lateral para filtrar e inspecionar seu dossiê.
           </p>
         </div>
-        <div id="active-unit-pill-wrap" style="display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap;">
-          <span class="stamp stamp-brass" id="selected-etec-indicator">EXIBINDO: TODAS AS 17 ETECs</span>
-        </div>
+        
       </div>
 
       <div class="split-7-5">
@@ -1198,11 +1196,11 @@
 
           <div class="map-legend">
             <div class="legend-items">
-              <span class="legend-item"><span class="dot-swatch dot-vermelho"></span> Risco Crítico (Vencido sem protocolo)</span>
-              <span class="legend-item"><span class="dot-swatch dot-amarelo"></span> Atenção (A vencer ou em renovação)</span>
-              <span class="legend-item"><span class="dot-swatch dot-verde"></span> Regular (Conformidade plena)</span>
+              <span class="legend-item"><span class="dot-swatch dot-vermelho"></span> Pendência Crítica (Atos Vencidos)</span>
+              <span class="legend-item"><span class="dot-swatch dot-amarelo"></span> Alerta Preventivo (Vencimento em até 1 Ano)</span>
+              <span class="legend-item"><span class="dot-swatch dot-verde"></span> Regularidade Plena (Atos Vigentes)</span>
             </div>
-            <span class="panel-meta">Geometria: Limites Estaduais IBGE (domínio público)</span>
+            <span class="panel-meta">Malha Territorial: Divisão Político-Administrativa Oficial (IBGE)</span>
           </div>
         </div>
 
@@ -1551,7 +1549,12 @@
     // INTEGRAÇÃO COM A PLANILHA OFICIAL GOOGLE (TEMPO REAL)
     // =========================================================================
     const URL_PLANILHA_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS9-yb5ewD5LobCyj82S4yLTtUINPWk9bx8HngF4flfJ3xT4tQhrkRm4_wM4M8EGFhQkedrfLLqMvI3/pub?gid=0&single=true&output=csv";
-    const URL_PLANILHA_PROCESSOS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsP6XBz8M3xroIJIrQesLCfo-IeQgsgcBqurR7_6hGv-cGSIZEbsTVi54N79xaKNOVGYXGq2SHxwe5/pub?gid=0&single=true&output=csv";
+    let URL_PLANILHA_PROCESSOS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTsP6XBz8M3xroIJIrQesLCfo-IeQgsgcBqurR7_6hGv-cGSIZEbsTVi54N79xaKNOVGYXGq2SHxwe5/pub?gid=0&single=true&output=csv";
+
+    // Se o usuário já configurou a URL de processos localmente, utiliza ela
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('sipe_url_processos_csv')) {
+      URL_PLANILHA_PROCESSOS_CSV = localStorage.getItem('sipe_url_processos_csv');
+    }
 
     function parseCSVLine(text) {
       const result = [];
@@ -1595,7 +1598,7 @@
     }
 
     // =========================================================================
-    // FILTRO ESTRITO: APENAS EDUCAÇÃO PROFISSIONAL ATIVA (CEE-MT / SIPE)
+    // FILTRO ESTRITO: APENAS EDUCAÇÃO PROFISSIONAL (EXCLUI EDUCAÇÃO BÁSICA PURA)
     // =========================================================================
     function isEducacaoProfissionalProcesso(tipoAto) {
       if (!tipoAto) return false;
@@ -1603,23 +1606,32 @@
 
       // 1. Bloqueio explícito de Educação Básica pura (Fundamental / Infantil / Médio Regular)
       const isBasicaPura = (t.includes('FUNDAMENTAL') || t.includes('INFANTIL') || t.includes('MEDIO REGULAR')) && 
-                           !t.includes('PROFISSIONAL') && !t.includes('FORA DE SEDE') && !t.includes('SABERES');
+                           !t.includes('PROFISSIONAL') && !t.includes('FORA DE SEDE') && !t.includes('SABERES') && !t.includes('TECNIC');
       if (isBasicaPura) return false;
 
       // 2. REGRA 1: Conter 'PROFISSIONAL' (Cursos Técnicos, Habilitações, Especializações)
       if (t.includes('PROFISSIONAL')) return true;
 
       // 3. REGRA 2: AUTORIZAÇÃO CURSO FORA DE SEDE ARTICULADO CONCOMITANTE E SUBSEQUENTE
-      if (t.includes('FORA DE SEDE') && (t.includes('CONCOMITANTE') || t.includes('SUBSEQUENTE') || t.includes('ARTICULADO'))) return true;
+      if (t.includes('FORA DE SEDE') || t.includes('CONCOMITANTE') || t.includes('SUBSEQUENTE') || t.includes('ARTICULADO')) return true;
       if (t.includes('AUTORIZACAO CURSO FORA DE SEDE')) return true;
 
       // 4. REGRA 3: AUTORIZAÇÃO PARA TURMAS ESPECIAIS (turma única de escola técnica)
-      if (t.includes('TURMAS ESPECIAIS') || t.includes('TURMA ESPECIAL')) return true;
+      if (t.includes('TURMAS ESPECIAIS') || t.includes('TURMA ESPECIAL') || t.includes('TURMA UNICA')) return true;
 
       // 5. REGRA 4: CREDENCIAMENTO UNIDADE CERTIFICADORA PARA RECONHECIMENTO DE SABERES E DE COMPETÊNCIAS
-      if (t.includes('RECONHECIMENTO DE SABERES') || t.includes('UNIDADE CERTIFICADORA') || t.includes('SABERES E DE COMPETENCIAS')) return true;
+      if (t.includes('RECONHECIMENTO DE SABERES') || t.includes('UNIDADE CERTIFICADORA') || t.includes('SABERES') || t.includes('COMPETENCIAS')) return true;
+
+      // 6. Cursos Técnicos e Habilitações Profissionais das ETECs
+      if (t.includes('TECNICO') || t.includes('TECNICA') || t.includes('HABILITACAO')) return true;
 
       return false;
+    }
+
+    function isActiveProcessStatus(sit) {
+      if (!sit) return false;
+      const s = normalizeStr(sit);
+      return s.includes('ANDAMENTO') || s.includes('RECEBER') || s.includes('CADASTRA') || s.includes('ANALISE') || s.includes('TRAMITA');
     }
 
     async function carregarDadosPlanilhaOnline() {
@@ -1728,10 +1740,15 @@
       // -----------------------------------------------------------------------
       // 2. CARREGAMENTO DOS PROCESSOS SIPE (EDUCAÇÃO PROFISSIONAL EM TEMPO REAL)
       // -----------------------------------------------------------------------
-      if (typeof URL_PLANILHA_PROCESSOS_CSV !== 'undefined' && URL_PLANILHA_PROCESSOS_CSV.trim() !== '' && !URL_PLANILHA_PROCESSOS_CSV.includes('SEU_GID')) {
+      let activeProcUrl = URL_PLANILHA_PROCESSOS_CSV;
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('sipe_url_processos_csv')) {
+        activeProcUrl = localStorage.getItem('sipe_url_processos_csv');
+      }
+
+      if (activeProcUrl && activeProcUrl.trim() !== '' && !activeProcUrl.includes('SEU_GID')) {
         try {
           console.log('⏳ SIPE Flow: Buscando processos do SIPE online...');
-          const respP = await fetch(URL_PLANILHA_PROCESSOS_CSV, { cache: 'no-store' });
+          const respP = await fetch(activeProcUrl, { cache: 'no-store' });
           if (respP.ok) {
             const csvPText = await respP.text();
             const rawLinesP = csvPText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
@@ -1769,9 +1786,7 @@
                 const tipoAto = (col[pTipo] || '').replace(/["']/g, '').trim();
 
                 // 1. Apenas Situações Ativas (Receber Processo, Em Andamento, Cadastrando)
-                const sNorm = normalizeStr(situacao);
-                const ehAtivo = sNorm === 'EM ANDAMENTO' || sNorm === 'RECEBER PROCESSO' || sNorm === 'CADASTRANDO';
-                if (!ehAtivo) continue;
+                if (!isActiveProcessStatus(situacao)) continue;
 
                 // 2. Apenas Educação Profissional (Exclui Educação Básica Pura)
                 if (!isEducacaoProfissionalProcesso(tipoAto)) continue;
@@ -1779,20 +1794,24 @@
                 // 3. Mapeamento das 17 ETECs
                 const instTxt = normalizeStr(col[pInst] || '');
                 const cidTxt = normalizeStr(col[pCid] || '');
+                const linhaCompleta = normalizeStr(col.join(' '));
                 let codEtec = 0;
                 let etecFound = ETECS_MASTER.find(e => 
                   instTxt.includes(normalizeStr(e.key)) || 
                   cidTxt.includes(normalizeStr(e.key)) || 
                   instTxt.includes(String(e.cod)) ||
+                  linhaCompleta.includes(String(e.cod)) ||
                   normalizeStr(e.cidade) === cidTxt ||
-                  cidTxt.includes(normalizeStr(e.cidade))
+                  cidTxt.includes(normalizeStr(e.cidade)) ||
+                  linhaCompleta.includes(normalizeStr(e.key))
                 );
 
                 if (etecFound) {
                   codEtec = etecFound.cod;
                 } else {
-                  // Se não encontrou nenhuma das 17 ETECs, descarta processo alheio
-                  continue;
+                  // O robô do GitHub extrai apenas as 17 ETECs. Não descartamos nenhum processo!
+                  codEtec = 3905; // Cuiabá como polo estadual de referência
+                  etecFound = ETECS_MASTER.find(e => e.cod === 3905);
                 }
 
                 novosProcessos.push({
@@ -1810,28 +1829,22 @@
               }
 
               if (novosProcessos.length > 0) {
-                console.log('✅ SIPE Flow: ' + novosProcessos.length + ' processos ATIVOS da Educação Profissional carregados do SIPE!');
+                console.log('✅ SIPE Flow: ' + novosProcessos.length + ' processos ATIVOS da Educação Profissional carregados com sucesso do SIPE!');
                 appState.processos = novosProcessos;
                 carregouProcessos = true;
               }
             }
           }
-        } catch (err) {
-          console.error('❌ Erro na sincronização online de processos:', err);
+        } catch (errP) {
+          console.error('❌ Erro na sincronização online de processos:', errP);
         }
       }
 
-      if (carregouAtos || carregouProcessos) {
-        const totalA = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
-        const totalP = (appState.processos && appState.processos.length) ? appState.processos.length : 0;
-        appState.customSourceLabel = 'SIGEDUCA / CEE-MT (' + totalA + ' ATOS · ' + totalP + ' PROCESSOS SIPE)';
-        const badge = document.getElementById('data-source-badge');
-        if (badge) {
-          badge.innerHTML = 'FONTE: <strong>SIGEDUCA / CEE-MT</strong> (' + totalA + ' ATOS · ' + totalP + ' PROCESSOS SIPE)';
-        }
-        return true;
-      }
-      return false;
+      const totalAtos = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
+      const totalProc = (appState.processos && appState.processos.length) ? appState.processos.length : 0;
+      appState.customSourceLabel = 'PLANILHA ONLINE (' + totalAtos + ' ATOS · ' + totalProc + ' PROCESSOS SIPE)';
+
+      return (carregouAtos || carregouProcessos);
     }
 
     async function forcarSincronizacaoPlanilha() {
@@ -1839,8 +1852,30 @@
       if (badge) {
         badge.innerHTML = 'FONTE: <strong>SINCRONIZANDO COM GOOGLE SHEETS...</strong>';
       }
-      const ok = await carregarDadosPlanilhaOnline();
       
+      let ok = await carregarDadosPlanilhaOnline();
+      
+      // Se não carregou processos porque a URL não foi informada ou expirou, solicita ao usuário
+      let activeProcUrl = (typeof URL_PLANILHA_PROCESSOS_CSV !== 'undefined') ? URL_PLANILHA_PROCESSOS_CSV : '';
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('sipe_url_processos_csv')) {
+        activeProcUrl = localStorage.getItem('sipe_url_processos_csv');
+      }
+
+      if (!activeProcUrl || activeProcUrl.includes('SEU_GID')) {
+        const inputGid = prompt('📋 SIPE Flow - Conectar Planilha de Processos:\n\nDigite o número do GID da aba de processos (ex: 184920482) ou cole o link CSV completo da aba de Processos:');
+        if (inputGid && inputGid.trim() !== '') {
+          let finalUrl = inputGid.trim();
+          if (/^\d+$/.test(finalUrl)) {
+            finalUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS9-yb5ewD5LobCyj82S4yLTtUINPWk9bx8HngF4flfJ3xT4tQhrkRm4_wM4M8EGFhQkedrfLLqMvI3/pub?gid=' + finalUrl + '&single=true&output=csv';
+          }
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('sipe_url_processos_csv', finalUrl);
+          }
+          URL_PLANILHA_PROCESSOS_CSV = finalUrl;
+          ok = await carregarDadosPlanilhaOnline();
+        }
+      }
+
       const totalAtos = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
       const totalProc = (appState.processos && appState.processos.length) ? appState.processos.length : 0;
       
