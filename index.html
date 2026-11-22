@@ -1131,15 +1131,15 @@
     <!-- KPI SUMMARY CARDS -->
     <section aria-label="Indicadores estratégicos consolidados">
       <div class="kpi-grid">
-        <article class="figure-card">
-          <div class="figure-label">Rede Estadual Monitorada</div>
-          <div class="figure-value" id="kpi-unidades">17 / 17</div>
-          <div class="figure-delta" id="kpi-unidades-sub">—</div>
-        </article>
-        <article class="figure-card figure-card--positive">
+<article class="figure-card">
           <div class="figure-label">Cursos Técnicos Monitorados</div>
           <div class="figure-value" id="kpi-total-cursos">0</div>
-          <div class="figure-delta figure-delta--positive" id="kpi-regulares-sub">—</div>
+          <div class="figure-delta" id="kpi-regulares-sub">—</div>
+        </article>
+        <article class="figure-card figure-card--positive">
+          <div class="figure-label">Rede Estadual Monitorada</div>
+          <div class="figure-value" id="kpi-unidades">17 / 17</div>
+          <div class="figure-delta figure-delta--positive" id="kpi-unidades-sub">—</div>
         </article>
         <article class="figure-card">
           <div class="figure-label">Cursos a Vencer (Até 1 Ano)</div>
@@ -2416,8 +2416,8 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
 
   const regularPct = totalCursos > 0 ? Math.round(((vigentes + aVencer) / totalCursos) * 100) : 0;
 
-  if (kpiTotalCursos) kpiTotalCursos.textContent = String(totalCursos);
-  if (kpiRegularesSub) kpiRegularesSub.textContent = vigentes + " vigentes plenos (" + regularPct + "% regulares)";
+   if (kpiTotalCursos) kpiTotalCursos.textContent = String(totalCursos);
+      if (kpiRegularesSub) kpiRegularesSub.textContent = `Catálogo Estadual · Atos e Habilitações no CEE-MT`;
 
   if (kpiAVencer) kpiAVencer.textContent = String(aVencer);
   if (kpiAVencerSub) kpiAVencerSub.textContent = "Vencimento em até " + appState.horizonDays + " dias · Requer abertura no CEE-MT";
