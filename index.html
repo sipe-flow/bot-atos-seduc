@@ -1255,18 +1255,20 @@
         </div>
 
         <div class="leaf-panel">
-          <div class="panel-header">
+          <div class="panel-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
             <div>
               <h3 class="panel-title">Cronograma de Vencimentos (2025–2029)</h3>
               <span class="panel-meta">Cursos por semestre de expiração do ato autorizativo</span>
             </div>
+            <span id="timeline-scope-badge" style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:var(--surface-container-high, #e2e8f0); color:var(--primary, #0f172a); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; border:1px solid var(--outline-variant, #cbd5e1);">
+              REDE ESTADUAL (17 ETECs)
+            </span>
           </div>
           <div class="chart-box-short">
             <canvas id="chart-expiry-timeline"></canvas>
           </div>
           <div style="border-top:var(--hairline);padding-top:var(--space-sm);font-size:0.8125rem;color:var(--on-surface-variant);">
-            <strong>Nota de Fiscalização:</strong> Cursos com vencimento até <strong>18/11/2026</strong> sem processo protocolado no SIPE acionam o fluxo de notificação automática pela Coordenadoria de Fiscalização e envio de alerta ao canal Google Chat da respectiva ETEC.
-          </div>
+           <strong>Nota de Fiscalização:</strong> Cursos com atos vencidos ou a vencer no horizonte selecionado sem processo ativo protocolado no SIPE acionam alerta preventivo à Coordenadoria e notificação automática à direção da respectiva ETEC.
         </div>
       </div>
     </section>
@@ -2800,6 +2802,20 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
     function renderTimelineChart(filteredAtos) {
       const canvas = document.getElementById(`chart-expiry-timeline`);
       if (!canvas || typeof Chart === `undefined`) return;
+            // Atualiza o nome da ETEC / Cidade que o gráfico está representando
+      const badgeScope = document.getElementById(`timeline-scope-badge`);
+      if (badgeScope) {
+        if (appState.selectedEtec === `TODAS`) {
+          badgeScope.textContent = `REDE ESTADUAL (17 ETECs)`;
+          badgeScope.style.background = `var(--surface-container-high, #e2e8f0)`;
+          badgeScope.style.color = `var(--on-surface, #1e293b)`;
+        } else {
+          const unit = ETECS_MASTER.find(e => e.cod === Number(appState.selectedEtec));
+          badgeScope.textContent = unit ? `${unit.nome.toUpperCase()} (${unit.cod})` : `ETEC SELECIONADA`;
+          badgeScope.style.background = `rgba(37, 99, 235, 0.12)`;
+          badgeScope.style.color = `#1d4ed8`;
+        }
+      }
 
       const buckets = [
         { key: `VENCIDOS`, label: `Já Vencidos`, count: 0, color: getCssToken(`--error`) },
