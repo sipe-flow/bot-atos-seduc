@@ -2386,52 +2386,50 @@ async function carregarDadosPlanilhaOnline() {
         window.lucide.createIcons();
       }
     }
-
 function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProcessos) {
-  const kpiUnidades = document.getElementById("kpi-unidades");
-  const kpiUnidadesSub = document.getElementById("kpi-unidades-sub");
-  const kpiTotalCursos = document.getElementById("kpi-total-cursos");
-  const kpiRegularesSub = document.getElementById("kpi-regulares-sub");
-  const kpiAVencer = document.getElementById("kpi-a-vencer");
-  const kpiAVencerSub = document.getElementById("kpi-a-vencer-sub");
-  const kpiVencidos = document.getElementById("kpi-vencidos");
-  const kpiVencidosSub = document.getElementById("kpi-vencidos-sub");
-  const kpiCobertura = document.getElementById("kpi-cobertura");
-  const kpiCoberturaSub = document.getElementById("kpi-cobertura-sub");
+      const kpiUnidades = document.getElementById(`kpi-unidades`);
+      const kpiUnidadesSub = document.getElementById(`kpi-unidades-sub`);
+      const kpiTotalCursos = document.getElementById(`kpi-total-cursos`);
+      const kpiRegularesSub = document.getElementById(`kpi-regulares-sub`);
+      const kpiAVencer = document.getElementById(`kpi-a-vencer`);
+      const kpiAVencerSub = document.getElementById(`kpi-a-vencer-sub`);
+      const kpiVencidos = document.getElementById(`kpi-vencidos`);
+      const kpiVencidosSub = document.getElementById(`kpi-vencidos-sub`);
+      const kpiCobertura = document.getElementById(`kpi-cobertura`);
+      const kpiCoberturaSub = document.getElementById(`kpi-cobertura-sub`);
 
-  const critCount = filteredSummaries.filter(s => s.risk === "VERMELHO").length;
-  const attCount = filteredSummaries.filter(s => s.risk === "AMARELO").length;
-  const regCount = filteredSummaries.filter(s => s.risk === "VERDE").length;
+      // 1. CÁLCULO PRÉVIO DE TODOS OS VALORES (Evita erro de variável antes da declaração)
+      const totalCursos = filteredAtos.length;
+      const vigentes = filteredAtos.filter(a => a.category === `VIGENTE`).length;
+      const aVencer = filteredAtos.filter(a => a.category === `A_VENCER`).length;
+      const vencCobertos = filteredAtos.filter(a => a.category === `VENCIDO_COBERTO`).length;
+      const vencDescobertos = filteredAtos.filter(a => a.category === `VENCIDO_DESCOBERTO`).length;
+      const totalVencidos = vencCobertos + vencDescobertos;
+      const vigentesPct = totalCursos > 0 ? Math.round((vigentes / totalCursos) * 100) : 0;
+      const vencidosPct = totalCursos > 0 ? Math.round((totalVencidos / totalCursos) * 100) : 0;
 
- const vigentesPct = totalCursos > 0 ? Math.round((vigentes / totalCursos) * 100) : 0;
- if (kpiUnidades) kpiUnidades.textContent = String(vigentes);
- if (kpiUnidadesSub) kpiUnidadesSub.textContent = `${vigentes} vigentes plenos (${vigentesPct}% regulares)`;;
-
-  const totalCursos = filteredAtos.length;
-  const vigentes = filteredAtos.filter(a => a.category === "VIGENTE").length;
-  const aVencer = filteredAtos.filter(a => a.category === "A_VENCER").length;
-  const aVencerCobertos = filteredAtos.filter(a => a.category === "A_VENCER" && a.matchedProcess).length;
-  const vencCobertos = filteredAtos.filter(a => a.category === "VENCIDO_COBERTO").length;
-  const vencDescobertos = filteredAtos.filter(a => a.category === "VENCIDO_DESCOBERTO").length;
-  const totalVencidos = vencCobertos + vencDescobertos;
-
-  const regularPct = totalCursos > 0 ? Math.round(((vigentes + aVencer) / totalCursos) * 100) : 0;
-
-   if (kpiTotalCursos) kpiTotalCursos.textContent = String(totalCursos);
+      // CARD 1: Cursos Técnicos Monitorados (Total de Habilitações Cadastradas)
+      if (kpiTotalCursos) kpiTotalCursos.textContent = String(totalCursos);
       if (kpiRegularesSub) kpiRegularesSub.textContent = `Catálogo Estadual · Atos e Habilitações no CEE-MT`;
 
-  if (kpiAVencer) kpiAVencer.textContent = String(aVencer);
-  if (kpiAVencerSub) kpiAVencerSub.textContent = "Vencimento em até " + appState.horizonDays + " dias · Requer abertura no CEE-MT";
+      // CARD 2: Atos Regulatórios Vigentes (184 vigentes plenos em tempo real)
+      if (kpiUnidades) kpiUnidades.textContent = String(vigentes);
+      if (kpiUnidadesSub) kpiUnidadesSub.textContent = `${vigentes} vigentes plenos (${vigentesPct}% regulares)`;
 
-  if (kpiVencidos) kpiVencidos.textContent = String(totalVencidos);
-  const vencidosPct = totalCursos > 0 ? Math.round((totalVencidos / totalCursos) * 100) : 0;
-  if (kpiVencidosSub) kpiVencidosSub.textContent = vencidosPct + "% da rede monitorada · Requer regularização junto ao CEE-MT";
+      // CARD 3: Cursos a Vencer no Horizonte
+      if (kpiAVencer) kpiAVencer.textContent = String(aVencer);
+      if (kpiAVencerSub) kpiAVencerSub.textContent = `Vencimento em até ${appState.horizonDays} dias · Requer abertura no CEE-MT`;
 
-  // NOVO CARD 4: Processos Reais em Tramitação Ativa no SIPE
-  const activeProcsCount = filteredProcessos.filter(p => isActiveProcessStatus(p.situacao)).length;
-  if (kpiCobertura) kpiCobertura.textContent = String(activeProcsCount);
-  if (kpiCoberturaSub) kpiCoberturaSub.textContent = activeProcsCount + " processos em análise no CEE-MT · Acompanhamento de regularização";
-}
+      // CARD 4: Cursos com Atos Vencidos
+      if (kpiVencidos) kpiVencidos.textContent = String(totalVencidos);
+      if (kpiVencidosSub) kpiVencidosSub.textContent = `${vencidosPct}% da rede monitorada · Requer regularização junto ao CEE-MT`;
+
+      // CARD 5: Quantidade Real de Processos Ativos no SIPE (115 Processos)
+      const activeProcsCount = filteredProcessos.filter(p => isActiveProcessStatus(p.situacao)).length;
+      if (kpiCobertura) kpiCobertura.textContent = String(activeProcsCount);
+      if (kpiCoberturaSub) kpiCoberturaSub.textContent = `${activeProcsCount} processos em análise no CEE-MT · Acompanhamento de regularização`;
+    }
+
 
 
     function renderSelectedUnitPill(summaries) {
