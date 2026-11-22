@@ -1296,13 +1296,13 @@
         <div class="table-scroll" style="max-height:420px;overflow-y:auto;">
           <table class="data-table">
             <thead>
-              <tr>
+                <tr>
                 <th>ETEC</th>
                 <th>Curso Técnico</th>
                 <th>Documento / Ato</th>
                 <th>Validade</th>
                 <th>Situação do Ato</th>
-                <th>Vínculo Sistemática (SIPE)</th>
+                <th>Ação Regulatória Recomendada</th>
                 <th>Diagnóstico</th>
                 <th>Ações</th>
               </tr>
@@ -2925,11 +2925,22 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
           statusBadge = `<span class="stamp stamp-vermelho">Vencido (${Math.abs(item.daysRemaining)}d)</span>`;
         }
 
-        let procHtml = `<span style="color:var(--error-ink);font-weight:600;">Sem processo ativo</span>`;
-        if (item.matchedProcess) {
-          procHtml = `
-            <div class="mono-code" style="color:var(--primary);font-weight:600;">Proc. ${escapeHtml(item.matchedProcess.processo)}</div>
-            <div style="font-size:0.78rem;color:var(--on-surface-variant);">${escapeHtml(item.matchedProcess.situacao)} · ${escapeHtml(item.matchedProcess.setor)}</div>
+// AÇÃO REGULATÓRIA RECOMENDADA (BASEADA NA TEMPESTIVIDADE DO ATO)
+        let acaoRegulatoriaHtml = '';
+        if (item.daysRemaining !== null && item.daysRemaining < 0) {
+          acaoRegulatoriaHtml = `
+            <div style="font-weight:600;color:var(--error, #dc2626);font-size:0.8125rem;">Autuar Renovação (CEE-MT)</div>
+            <div style="font-size:0.75rem;color:var(--on-surface-variant);">Abertura prioritária no SIPE</div>
+          `;
+        } else if (item.daysRemaining !== null && item.daysRemaining <= 90) {
+          acaoRegulatoriaHtml = `
+            <div style="font-weight:600;color:var(--warning-ink, #b45309);font-size:0.8125rem;">Instruir Processo de Renovação</div>
+            <div style="font-size:0.75rem;color:var(--on-surface-variant);">Prazo crítico: juntada de peças</div>
+          `;
+        } else {
+          acaoRegulatoriaHtml = `
+            <div style="font-weight:600;color:var(--primary, #0284c7);font-size:0.8125rem;">Planejar Renovação Preventiva</div>
+            <div style="font-size:0.75rem;color:var(--on-surface-variant);">Elaborar projeto pedagógico</div>
           `;
         }
 
@@ -2954,7 +2965,7 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
             <td><div>${escapeHtml(item.doc)}</div><div class="mono-code">${escapeHtml(item.ato)}</div></td>
             <td class="mono-code">${escapeHtml(item.validade)}</td>
             <td>${statusBadge}</td>
-            <td>${procHtml}</td>
+            <td>${acaoRegulatoriaHtml}</td>
             <td>${diagBadge}</td>
             <td>
               <div style="display:flex;gap:4px;flex-wrap:wrap;">
