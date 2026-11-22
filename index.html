@@ -1137,8 +1137,8 @@
           <div class="figure-delta" id="kpi-regulares-sub">—</div>
         </article>
         <article class="figure-card figure-card--positive">
-          <div class="figure-label">Rede Estadual Monitorada</div>
-          <div class="figure-value" id="kpi-unidades">17 / 17</div>
+          <div class="figure-label">Atos Regulatórios Vigentes</div>
+          <div class="figure-value" id="kpi-unidades">0</div>
           <div class="figure-delta figure-delta--positive" id="kpi-unidades-sub">—</div>
         </article>
         <article class="figure-card">
@@ -2403,8 +2403,9 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
   const attCount = filteredSummaries.filter(s => s.risk === "AMARELO").length;
   const regCount = filteredSummaries.filter(s => s.risk === "VERDE").length;
 
-  if (kpiUnidades) kpiUnidades.textContent = filteredSummaries.length + " / " + allSummaries.length;
-  if (kpiUnidadesSub) kpiUnidadesSub.textContent = critCount + " Críticas · " + attCount + " Atenção · " + regCount + " Regulares";
+ const vigentesPct = totalCursos > 0 ? Math.round((vigentes / totalCursos) * 100) : 0;
+ if (kpiUnidades) kpiUnidades.textContent = String(vigentes);
+ if (kpiUnidadesSub) kpiUnidadesSub.textContent = `${vigentes} vigentes plenos (${vigentesPct}% regulares)`;;
 
   const totalCursos = filteredAtos.length;
   const vigentes = filteredAtos.filter(a => a.category === "VIGENTE").length;
