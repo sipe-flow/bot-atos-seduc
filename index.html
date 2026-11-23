@@ -3676,23 +3676,41 @@ ${corpoTexto}
       renderAll();
     }
 
-    function exportFilteredCsv() {
+function exportFilteredCsv() {
       const classified = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
       const filtered = classified.filter(a => {
         if (appState.selectedEtec !== `TODAS` && Number(appState.selectedEtec) !== Number(a.cod)) return false;
         return true;
       });
 
-      const header = [`Codigo_ETEC`, `Instituicao`, `Municipio_Curso`, `Curso`, `Ato_Regulatorio`, `Documento`, `Validade`, `Dias_Restantes`, `Classificacao_Risco`, `Processo_SIPE`, `Situacao_Processo`];
+      // Cabeçalho atualizado:
+      // 1. 'Documento' substituído por 'Nº Documento'
+      // 2. Coluna 'Processo_SIPE' removida
+      const header = [`Codigo_ETEC`, `Instituicao`, `Municipio_Curso`, `Curso`, `Ato_Regulatorio`, `Nº Documento`, `Validade`, `Dias_Restantes`, `Classificacao_Risco`, `Situacao_Processo`];
       const csvRows = [header.join(`;`)];
+
       filtered.forEach(a => {
-        const proc = a.matchedProcess ? a.matchedProcess.processo : `SEM PROTOCOLO`;
         const procSit = a.matchedProcess ? a.matchedProcess.situacao : `-`;
+
+        // Ajuste da classificação: 'VENCIDO_DESCOBERTO' passa a ser apenas 'VENCIDO'
+        let catRisco = a.category;
+        if (catRisco === `VENCIDO_DESCOBERTO` || catRisco === `VENCIDO DESCOBERTO`) {
+          catRisco = `VENCIDO`;
+        }
+
         const cols = [
-          a.cod, a.escola, a.municipio, a.curso, a.ato, a.doc, a.validade,
+          a.cod,
+          a.escola,
+          a.municipio,
+          a.curso,
+          a.ato,
+          a.doc || `-`, // Nº Documento que consta na planilha dos atos (Portaria / Resolução CEE-MT)
+          a.validade,
           a.daysRemaining !== null ? a.daysRemaining : ``,
-          a.category, proc, procSit
+          catRisco,
+          procSit
         ].map(v => `"${String(v).replace(/"/g, `""`)}"`);
+
         csvRows.push(cols.join(`;`));
       });
       const csvString = `\uFEFF` + csvRows.join(`\n`);
@@ -3722,6 +3740,7 @@ ${corpoTexto}
         });
       }
     }
+
 
     // =========================================================================
     // 15. INITIALIZATION
