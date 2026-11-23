@@ -3007,9 +3007,11 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
       const curso = parts[2];
       return appState.atos.find(a => Number(a.cod) === cod && a.municipio === mun && a.curso === curso);
     }
-     // =========================================================================
+
+    // =========================================================================
     // 11.1 GERADOR DE REQUERIMENTOS WORD EDITÁVEIS (.DOC / CEE-MT)
     // Conforme Modelos Oficiais da RN nº 007/2023/CEE-MT e RN nº 012/2024/CEE-MT
+    // Preenchimento Automático do Ato de Credenciamento e D.O. das 17 ETECs
     // =========================================================================
     function downloadWordRequerimento(encodedKey) {
       const ato = findAtoByKey(encodedKey);
@@ -3025,6 +3027,45 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
       const atoDoc = ato.doc || `Ato Regulatório`;
       const atoPub = ato.pub ? `${ato.pub} (pág. ${ato.pag || '—'})` : `Diário Oficial do Estado`;
 
+      // -----------------------------------------------------------------------
+      // REGRA AUTOMÁTICA: TABELA OFICIAL DE ATOS DE CREDENCIAMENTO DAS 17 ETECs
+      // -----------------------------------------------------------------------
+      const CREDENCIAMENTO_ETECS = {
+        5002: { ato: "Portaria nº 772/2023", do: "13/12/2023", chave: "AGUA BOA" },
+        617:  { ato: "Portaria nº 094/2011", do: "26/12/2011", chave: "ALTA FLORESTA" },
+        1437: { ato: "Portaria nº 094/2011", do: "26/12/2011", chave: "BARRA DO GARCAS" },
+        4858: { ato: "Portaria nº 557/2023", do: "23/01/2024", chave: "CACERES" },
+        2392: { ato: "Portaria nº 740/2023", do: "15/12/2023", chave: "CAMPO VERDE" },
+        3905: { ato: "Portaria nº 498/2023", do: "23/01/2024", chave: "CUIABA" },
+        321:  { ato: "Portaria nº 094/2011", do: "26/12/2011", chave: "DIAMANTINO" },
+        5009: { ato: "Portaria nº 2/2024",   do: "18/01/2024", chave: "JUARA" },
+        3337: { ato: "Portaria nº 094/2011", do: "26/12/2011", chave: "LUCAS DO RIO VERDE" },
+        5008: { ato: "Portaria nº 1/2024",   do: "18/01/2024", chave: "MATUPA" },
+        1621: { ato: "Portaria nº 094/2011", do: "26/12/2011", chave: "POXOREU" },
+        5003: { ato: "Portaria nº 773/2023", do: "15/12/2023", chave: "PRIMAVERA DO LESTE" },
+        867:  { ato: "Portaria nº 094/2011", do: "26/12/2011", chave: "RONDONOPOLIS" },
+        656:  { ato: "Portaria nº 094/2011", do: "26/12/2011", chave: "SINOP" },
+        5010: { ato: "Portaria nº 894/2024", do: "11/12/2024", chave: "SORRISO" },
+        657:  { ato: "Portaria nº 094/2011", do: "26/12/2011", chave: "TANGARA DA SERRA" },
+        5107: { ato: "Portaria nº 895/2024", do: "11/12/2024", chave: "VARZEA GRANDE" }
+      };
+
+      // Identificação por código SIGEDUCA com fallback por normalização de texto
+      const codNum = Number(ato.cod);
+      let cred = CREDENCIAMENTO_ETECS[codNum];
+      if (!cred) {
+        const munNorm = normalizeText(municipioNome);
+        const escNorm = normalizeText(escolaNome);
+        const foundKey = Object.keys(CREDENCIAMENTO_ETECS).find(k => {
+          const itemKey = CREDENCIAMENTO_ETECS[k].chave;
+          return munNorm.includes(itemKey) || escNorm.includes(itemKey);
+        });
+        cred = foundKey ? CREDENCIAMENTO_ETECS[foundKey] : { ato: "Portaria nº 094/2011", do: "26/12/2011" };
+      }
+
+      const credAto = cred.ato;
+      const credDO = cred.do;
+
       const atoNorm = String(ato.ato || '').toUpperCase();
       const cursoNorm = String(cursoNome).toUpperCase();
 
@@ -3036,61 +3077,59 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
       const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
       const dataExtenso = `${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
 
-      // Regra de seleção do Requerimento exato conforme a tipologia do ato:
+      // Critério de seleção do Modelo conforme a tipologia do ato regulatório CEE-MT
       if (atoNorm.includes("EAD") || atoNorm.includes("DISTANCIA") || atoNorm.includes("DISTÂNCIA") || cursoNorm.includes("EAD")) {
         anexoBadge = "MODELO 7 DE 7 | RN nº 012/2024/CEE-MT — ANEXO III";
         tituloAto = "Autorização de Curso Técnico na Modalidade EaD";
         corpoTexto = `
-          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato __________________, publicado no Diário Oficial de __________________, e Autorizada pelo Ato <strong>${escapeHtml(atoDoc)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(atoPub)}</strong>, requeiro a Vossa Excelência <strong>Autorização da Educação Profissional Técnica de Nível Médio a distância</strong> para oferta do curso <strong>${escapeHtml(cursoNome)}</strong>, na forma (Concomitante, subsequente ou integrado) na modalidade de Educação a Distância (EaD), para o período de __________________, informando que a instituição é beneficiária de programas e projetos que garantem recursos públicos estaduais. Será ofertada com o número de turmas, vagas e turnos informados no Plano de Curso anexo.</p>
+          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato <strong>${escapeHtml(credAto)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(credDO)}</strong>, e Autorizada pelo Ato <strong>${escapeHtml(atoDoc)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(atoPub)}</strong>, requeiro a Vossa Excelência <strong>Autorização da Educação Profissional Técnica de Nível Médio a distância</strong> para oferta do curso <strong>${escapeHtml(cursoNome)}</strong>, na forma (Concomitante, subsequente ou integrado) na modalidade de Educação a Distância (EaD), para o período de __________________, informando que a instituição é beneficiária de programas e projetos que garantem recursos públicos estaduais. Será ofertada com o número de turmas, vagas e turnos informados no Plano de Curso anexo.</p>
         `;
       } else if (atoNorm.includes("EXPERIMENTAL") || cursoNorm.includes("EXPERIMENTAL")) {
         anexoBadge = "MODELO 6 DE 7 | RN nº 007/2023/CEE-MT — ANEXO VI";
         tituloAto = "Autorização de Curso Técnico em Caráter Experimental (Presencial / Geral)";
         corpoTexto = `
-          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato __________________, publicado no Diário Oficial de __________________, requeiro a Vossa Excelência <strong>Autorização para a oferta da Educação Profissional Técnica de Nível Médio em Caráter Experimental</strong>, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na forma de oferta (subsequente, concomitante ou integrado), Eixo Tecnológico correspondente e modalidade presencial, que será ofertado no período que compreende (__________________) nos turnos (__________________), com turmas compostas por estudantes regulares da rede pública estadual.</p>
+          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato <strong>${escapeHtml(credAto)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(credDO)}</strong>, requeiro a Vossa Excelência <strong>Autorização para a oferta da Educação Profissional Técnica de Nível Médio em Caráter Experimental</strong>, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na forma de oferta (subsequente, concomitante ou integrado), Eixo Tecnológico correspondente e modalidade presencial, que será ofertado no período que compreende (__________________) nos turnos (__________________), com turmas compostas por estudantes regulares da rede pública estadual.</p>
         `;
       } else if (atoNorm.includes("ESPECIALIZA") || cursoNorm.includes("ESPECIALIZA")) {
         if (atoNorm.includes("FORA DE SEDE")) {
           anexoBadge = "MODELO 5 DE 7 | RN nº 007/2023/CEE-MT — ANEXO V";
           tituloAto = "Autorização de Especialização Técnica Fora de Sede (Presencial / Geral)";
           corpoTexto = `
-            <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato __________________, autorizada pelo Ato <strong>${escapeHtml(atoDoc)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(atoPub)}</strong>, para a oferta da Educação Profissional Técnica de Nível Médio, Especialização Técnica <strong>${escapeHtml(cursoNome)}</strong>, requeiro a Vossa Excelência <strong>Autorização para a oferta de Especialização Técnica Fora de Sede</strong>, com turmas compostas por estudantes conforme plano de atendimento e demanda formativa local.</p>
+            <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato <strong>${escapeHtml(credAto)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(credDO)}</strong>, autorizada pelo Ato <strong>${escapeHtml(atoDoc)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(atoPub)}</strong>, para a oferta da Educação Profissional Técnica de Nível Médio, Especialização Técnica <strong>${escapeHtml(cursoNome)}</strong>, requeiro a Vossa Excelência <strong>Autorização para a oferta de Especialização Técnica Fora de Sede</strong>, com turmas compostas por estudantes conforme plano de atendimento e demanda formativa local.</p>
           `;
         } else {
           anexoBadge = "MODELO 4 DE 7 | RN nº 007/2023/CEE-MT — ANEXO IV";
           tituloAto = "Autorização de Especialização Técnica na Sede (Presencial / Geral)";
           corpoTexto = `
-            <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato __________________, publicado no Diário Oficial de __________________, requeiro a Vossa Excelência <strong>Autorização para a oferta de Especialização Técnica na Sede</strong>, do curso <strong>${escapeHtml(cursoNome)}</strong>, Eixo Tecnológico correspondente e modalidade presencial, a ser ofertado nos turnos e períodos de funcionamento da sede escolar.</p>
+            <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato <strong>${escapeHtml(credAto)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(credDO)}</strong>, requeiro a Vossa Excelência <strong>Autorização para a oferta de Especialização Técnica na Sede</strong>, do curso <strong>${escapeHtml(cursoNome)}</strong>, Eixo Tecnológico correspondente e modalidade presencial, a ser ofertado nos turnos e períodos de funcionamento da sede escolar.</p>
           `;
         }
       } else if (atoNorm.includes("TURMAS ESPECIAIS") || atoNorm.includes("TURMA ESPECIAL")) {
         anexoBadge = "MODELO 3 DE 7 | RN nº 007/2023/CEE-MT — ANEXO III";
         tituloAto = "Autorização de Curso Técnico – Turmas Especiais (Presencial / Geral)";
         corpoTexto = `
-          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato __________________, publicado no Diário Oficial de __________________, requeiro a Vossa Excelência <strong>Autorização para a oferta da Educação Profissional Técnica de Nível Médio – Turmas Especiais</strong>, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na forma de oferta (subsequente, concomitante ou integrado), no período que compreende (__________________) nos turnos (__________________), atendendo turmas especiais da unidade técnica.</p>
+          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato <strong>${escapeHtml(credAto)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(credDO)}</strong>, requeiro a Vossa Excelência <strong>Autorização para a oferta da Educação Profissional Técnica de Nível Médio – Turmas Especiais</strong>, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na forma de oferta (subsequente, concomitante ou integrado), no período que compreende (__________________) nos turnos (__________________), atendendo turmas especiais da unidade técnica.</p>
         `;
       } else if (atoNorm.includes("FORA DE SEDE")) {
         anexoBadge = "MODELO 2 DE 7 | RN nº 007/2023/CEE-MT — ANEXO II";
         tituloAto = "Autorização de Curso Técnico Fora de Sede (Presencial / Geral)";
         corpoTexto = `
-          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato __________________, publicado no Diário Oficial de __________________, e autorizada pelo Ato <strong>${escapeHtml(atoDoc)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(atoPub)}</strong>, para a oferta da Educação Profissional Técnica de Nível Médio, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, requeiro a Vossa Excelência <strong>Autorização para a oferta da Educação Profissional Técnica de Nível Médio fora de sede</strong>, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na forma de oferta (subsequente, concomitante ou integrado), com turmas que serão ofertadas na extensão presencial municipal.</p>
+          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato <strong>${escapeHtml(credAto)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(credDO)}</strong>, e autorizada pelo Ato <strong>${escapeHtml(atoDoc)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(atoPub)}</strong>, para a oferta da Educação Profissional Técnica de Nível Médio, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, requeiro a Vossa Excelência <strong>Autorização para a oferta da Educação Profissional Técnica de Nível Médio fora de sede</strong>, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na forma de oferta (subsequente, concomitante ou integrado), com turmas que serão ofertadas na extensão presencial municipal.</p>
         `;
       } else if (atoNorm.includes("RENOVACAO") || atoNorm.includes("RENOVAÇÃO")) {
         anexoBadge = "RN nº 007/2023/CEE-MT | Requerimento Oficial de Renovação";
         tituloAto = "Renovação de Reconhecimento / Autorização de Curso Técnico na Sede";
         corpoTexto = `
-          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato __________________, publicado no Diário Oficial de __________________, e com ato regulatório anterior <strong>${escapeHtml(atoDoc)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(atoPub)}</strong>, requeiro a Vossa Excelência a <strong>RENOVAÇÃO DE RECONHECIMENTO / AUTORIZAÇÃO</strong> para a continuidade da oferta regular da Educação Profissional Técnica de Nível Médio, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na sede da instituição escolar.</p>
+          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato <strong>${escapeHtml(credAto)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(credDO)}</strong>, e com ato regulatório anterior <strong>${escapeHtml(atoDoc)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(atoPub)}</strong>, requeiro a Vossa Excelência a <strong>RENOVAÇÃO DE RECONHECIMENTO / AUTORIZAÇÃO</strong> para a continuidade da oferta regular da Educação Profissional Técnica de Nível Médio, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na sede da instituição escolar.</p>
         `;
       } else {
-        // Padrão: Modelo 1 (Autorização na Sede)
         anexoBadge = "MODELO 1 DE 7 | RN nº 007/2023/CEE-MT — ANEXO I";
         tituloAto = "Autorização de Curso Técnico na Sede (Presencial / Geral)";
         corpoTexto = `
-          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato __________________, publicado no Diário Oficial de __________________, requeiro a Vossa Excelência <strong>Autorização para a oferta da Educação Profissional Técnica de Nível Médio</strong>, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na forma de oferta (subsequente, concomitante ou integrado), Eixo Tecnológico correspondente e modalidade presencial, que será ofertado na sede da unidade escolar.</p>
+          <p>Eu, ____________________________________, brasileiro(a), portador(a) do RG nº ______________ e CPF nº __________________, ocupante do cargo de Diretor(a), da Unidade Escolar <strong>${escapeHtml(escolaNome)}</strong>, situada no município de <strong>${escapeHtml(municipioNome)}</strong>, mantida pela Secretaria de Estado de Ciência, Tecnologia e Inovação – SECITECI/MT, credenciada pelo Ato <strong>${escapeHtml(credAto)}</strong>, publicado no Diário Oficial de <strong>${escapeHtml(credDO)}</strong>, requeiro a Vossa Excelência <strong>Autorização para a oferta da Educação Profissional Técnica de Nível Médio</strong>, do curso técnico <strong>${escapeHtml(cursoNome)}</strong>, na forma de oferta (subsequente, concomitante ou integrado), Eixo Tecnológico correspondente e modalidade presencial, que será ofertado na sede da unidade escolar.</p>
         `;
       }
 
-      // Montagem do arquivo Word (.doc em HTML Office com margens ABNT)
       const wordHtml = `<!DOCTYPE html>
 <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
 <head>
