@@ -1639,7 +1639,7 @@ async function carregarDadosPlanilhaOnline() {
           let idxAto = header.findIndex(h => h.includes('ATO'));
           let idxSit = header.findIndex(h => h.includes('SITUACAO'));
           let idxModelo = header.findIndex(h => h.includes('MODELO'));
-          let idxDoc = header.findIndex(h => h.includes('DOCUMENTO') || h.includes('DOC') || h.includes('NUMERO'));
+          let idxDoc = header.findIndex(h => (h.includes('NUMERO') || h.includes('N') || h.includes('DOC')) && !h.includes('MODELO'));
           let idxVal = header.findIndex(h => h.includes('VALIDADE'));
           let idxPub = header.findIndex(h => h.includes('PUBLICACAO'));
           let idxPag = header.findIndex(h => h.includes('PAG'));
