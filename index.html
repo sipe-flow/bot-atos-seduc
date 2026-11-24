@@ -1339,7 +1339,7 @@
           <span class="section-kicker">04 · Visão Analítica Detalhada por Unidade Escolar</span>
           <h2 id="sec-dossier-title">Dossiê Regulatório Individual da ETEC</h2>
           <p class="section-subtitle">
-            Inspeção granular dos 11 campos de Atos Regulatórios e 9 campos oficiais de Processos Administrativos do SIGEDUCA/SIPE, além do registro de diligências da Coordenadoria de Fiscalização.
+            Auditoria contínua da conformidade legal dos cursos, cruzamento de processos em tramitação no CEE/MT e histórico de diligências da unidade.
           </p>
         </div>
       </div>
@@ -1350,7 +1350,7 @@
       <div class="leaf-panel" id="dossier-panel">
         <div class="panel-header">
           <div>
-            <span class="mono-code" id="dossier-code-meta">CÓDIGO SIGEDUCA — · MESORREGIÃO —</span>
+            <span class="mono-code" id="dossier-code-meta">CÓDIGO SIGEDUCA —</span>
             <h3 class="panel-title" id="dossier-etec-name" style="font-size:var(--headline-size);font-weight:400;margin-top:2px;">Selecione uma ETEC</h3>
           </div>
           <div style="display:flex;gap:var(--space-sm);align-items:center;flex-wrap:wrap;" id="dossier-status-badges"></div>
@@ -3358,7 +3358,7 @@ ${corpoTexto}
       const nameEl = document.getElementById(`dossier-etec-name`);
       const badgesEl = document.getElementById(`dossier-status-badges`);
 
-      if (metaEl) metaEl.textContent = `CÓDIGO SIGEDUCA #${unit.cod} · POLO ${unit.cidade} · MESORREGIÃO ${unit.regiao.toUpperCase()}`;
+      if (metaEl) metaEl.textContent = `CÓDIGO SIGEDUCA #${unit.cod} · POLO ${unit.cidade}`;
       if (nameEl) nameEl.textContent = unit.nomeCompleto;
 
       if (badgesEl) {
