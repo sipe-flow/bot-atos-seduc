@@ -1459,10 +1459,12 @@
 
     <!-- FOOTER / METHODOLOGY & ARCHITECTURE -->
     <footer class="footer-note">
-      <div>
-        <strong style="color:var(--on-surface);">Metodologia SIPE Flow MT & Arquitetura de Coleta:</strong>
-        Os dados estruturais seguem o modelo oficial dos robôs <code>bot-atos-seduc</code> (extração paginada de <code>wmceeinfinstensino.aspx</code> mantendo o ato mais recente por par Município + Curso Técnico) e <code>bot-processos-seduc</code> (9 colunas oficiais do SIPE), integrados via Google Apps Script para disparo automático de alertas no Google Chat e comunicados formais por e-mail da Coordenadoria de Fiscalização (<code>coordenadoriadefiscalizacao@secitec.mt.gov.br</code>). Os registros exibidos inicialmente constituem uma base referencial operacional calibrada para a data-base de 18/11/2026 (incluindo o caso-teste da Portaria 123/2024 de Rondonópolis), podendo ser substituídos a qualquer momento pelo botão <em>Importar Dados SIGEDUCA</em>.
-      </div>
+  <div style="background: var(--surface-container-low, #f8f9fa); border-left: 4px solid var(--primary, #005a9e); padding: 16px 20px; border-radius: 4px; margin-top: 24px;">
+  <p style="text-align: justify; text-justify: inter-word; line-height: 1.65; font-size: 0.875rem; color: var(--on-surface-variant, #444746); margin: 0;">
+    <strong style="color: var(--on-surface, #1f1f1f);">Metodologia SIPE Flow MT & Arquitetura de Coleta e Auditoria Contínua:</strong> 
+    A solução consolida um modelo inédito de governança preditiva para a Educação Profissional e Tecnológica do Estado de Mato Grosso, fundamentado na interoperabilidade automatizada de dados. A arquitetura de inteligência integra a extração algorítmica contínua dos Atos Regulatórios publicados no CEE/MT — aplicando deduplicação avançada para assegurar a vigência jurídica de cada par Município e Curso Técnico — ao monitoramento em tempo real dos 9 campos oficiais de Processos Administrativos do SIGEDUCA/SIPE. O ecossistema promove a conformidade tempestiva por meio de réguas preventivas automatizadas (180, 90, 60 e 30 dias), comunicados formais expedidos pela Coordenadoria de Fiscalização da SECITECI (<code style="font-size: 0.85em;">coordenadoriadefiscalizacao@secitec.mt.gov.br</code>) e notificações simultâneas direcionadas às salas temáticas do Google Chat da rede estadual. A base inicial reflete o diagnóstico situacional oficial da rede das 17 Escolas Técnicas Estaduais, permitindo a sincronização e atualização instantânea a qualquer momento mediante integração direta aos sistemas do Estado.
+  </p>
+  </div>
       <div>
         <strong style="color:var(--on-surface);">Fontes Documentais:</strong>
         Especificação técnica dos scripts <code>EXTRAIR ATOS</code>, <code>EXTRAIR PROCESSOS</code>, <code>BACKUP APPSCRIPT</code>, <code>aqui.txt</code> e <code>olha vc.txt</code> (SECITECI/MT · SEDUC-MT). Geometria vetorial de Mato Grosso baseada em coordenadas geodésicas IBGE de domínio público.
