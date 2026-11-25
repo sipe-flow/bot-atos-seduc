@@ -3784,109 +3784,77 @@ function exportFilteredCsv() {
     }
 
 
-    // =========================================================================
-    // 15. INITIALIZATION
-    // =========================================================================
-     async function initApp() {
-      await loadSavedState();
+// =========================================================================
+// 15. INITIALIZATION
+// =========================================================================
+async function initApp() {
+  await loadSavedState();
 
-      // CARREGAMENTO AUTOMÁTICO EM TEMPO REAL DAS PLANILHAS GOOGLE ONLINE
-      await carregarDadosPlanilhaOnline();
+  // 1. Carrega dados das planilhas Google em tempo real
+  await carregarDadosPlanilhaOnline();
 
-      // 🔒 DETECÇÃO BLINDADA DA ETEC NA URL (Normaliza acentos e espaços)
-      const params = new URLSearchParams(window.location.search);
-      const etecParam = params.get('etec');
-      if (etecParam && etecParam.trim() !== '' && etecParam.toUpperCase() !== 'TODAS') {
-        const termoLimpo = decodeURIComponent(etecParam)
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-          .trim().toUpperCase();
+  // 2. 🔒 Detecção da ETEC na URL (com normalização de acentos)
+  const params = new URLSearchParams(window.location.search);
+  const etecUrl = params.get('etec');
+  if (etecUrl && etecUrl.trim() !== '' && etecUrl.toUpperCase() !== 'TODAS') {
+    const termoLimpo = decodeURIComponent(etecUrl)
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .trim().toUpperCase();
 
-        const encontrada = ETECS_MASTER.find(e => {
-          const nomeNorm = (e.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-          const cidNorm = (e.cidade || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-          const keyNorm = (e.key || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-          return String(e.cod) === termoLimpo || 
-                 cidNorm === termoLimpo || 
-                 keyNorm === termoLimpo || 
-                 nomeNorm.includes(termoLimpo) ||
-                 termoLimpo.includes(cidNorm);
-        });
+    const encontrada = ETECS_MASTER.find(e => {
+      const nomeNorm = (e.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      const cidNorm = (e.cidade || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      const keyNorm = (e.key || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      return String(e.cod) === termoLimpo || 
+             cidNorm === termoLimpo || 
+             keyNorm === termoLimpo || 
+             nomeNorm.includes(termoLimpo) ||
+             termoLimpo.includes(cidNorm);
+    });
 
-        if (encontrada) {
-          appState.lockedEtec = encontrada.cod;
-          appState.selectedEtec = String(encontrada.cod);
-          appState.activeUnitDossier = Number(encontrada.cod);
-        }
-      }
-
-      populateEtecDropdown();
-      syncFilterControlsFromState();
-
-      // 3. Atualiza data-base no cabeçalho se houver elemento
-      var elData = document.getElementById('data-base-val');
-      if (elData) {
-        elData.textContent = new Date().toLocaleDateString('pt-BR');
-      }
-
-      // 4. Popula o seletor das 17 ETECs
-      populateEtecDropdown();
-      syncFilterControlsFromState();
-
-    // 👇 A PARTE 2 ENTRA EXATAMENTE AQUI:
-    // 🎯 FILTRO AUTOMÁTICO VIA EXTENSÃO: Lê se veio uma ETEC específica na URL (?etec=Matupá)
-    const urlParams = new URLSearchParams(window.location.search);
-    const etecParam = urlParams.get('etec');
-    if (etecParam && etecParam !== 'TODAS') {
-      const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
-      const pNorm = norm(etecParam);
-      const etecEncontrada = ETECS_MASTER.find(e => 
-        norm(e.cidade) === pNorm || 
-        norm(e.nome) === pNorm || 
-        norm(e.key) === pNorm || 
-        String(e.cod) === pNorm
-      );
-      if (etecEncontrada) {
-        appState.selectedEtec = String(etecEncontrada.cod);
-        appState.activeUnitDossier = etecEncontrada.cod;
-        syncFilterControlsFromState();
-
-        // 🔒 TRAVA DO SELETOR DE ESCOLAS: Impede o servidor de mudar de unidade
-        const selFiltro = document.getElementById('filter-etec');
-        if (selFiltro) {
-          selFiltro.disabled = true;
-          selFiltro.title = 'Acesso restrito à sua unidade escolar.';
-          selFiltro.style.backgroundColor = '#f1f5f9';
-          selFiltro.style.cursor = 'not-allowed';
-        }
-      }
-     }
-
-      // 5. Sincroniza abas ativas
-      const crossBtn = document.querySelector(`[data-cross-tab="${appState.crossTab}"]`);
-      if (crossBtn) setCrossTab(appState.crossTab, crossBtn);
-      const dossierBtn = document.querySelector(`[data-dossier-tab="${appState.dossierTab}"]`);
-      if (dossierBtn) setDossierTab(appState.dossierTab, dossierBtn);
-
-      // 6. Renderiza todos os KPIs, gráficos e mapa D3 já com os 377 cursos
-      renderAll();
-
-      // 7. Re-renderiza o mapa no redimensionamento da janela
-      let resizeTimer = null;
-      window.addEventListener(`resize`, () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          const classifiedAtos = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
-          const summaries = computeEtecSummaries(classifiedAtos, appState.processos);
-          renderMap(summaries, summaries);
-        }, 200);
-      });
-
-      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
-        window.notebookAppApi.notifyAppReady();
-      }
+    if (encontrada) {
+      appState.lockedEtec = encontrada.cod;
+      appState.selectedEtec = String(encontrada.cod);
+      appState.activeUnitDossier = Number(encontrada.cod);
     }
+  }
 
-    document.addEventListener(`DOMContentLoaded`, initApp);
-  </script>
+  // 3. Atualiza data-base no cabeçalho
+  var elData = document.getElementById('data-base-val');
+  if (elData) {
+    elData.textContent = new Date().toLocaleDateString('pt-BR');
+  }
+
+  // 4. Popula o seletor das 17 ETECs e sincroniza filtros
+  populateEtecDropdown();
+  syncFilterControlsFromState();
+
+  // 5. Sincroniza abas ativas
+  const crossBtn = document.querySelector(`[data-cross-tab="${appState.crossTab}"]`);
+  if (crossBtn) setCrossTab(appState.crossTab, crossBtn);
+  const dossierBtn = document.querySelector(`[data-dossier-tab="${appState.dossierTab}"]`);
+  if (dossierBtn) setDossierTab(appState.dossierTab, dossierBtn);
+
+  // 6. RENDERIZA TODOS OS DADOS DA ETEC NA TELA
+  renderAll();
+
+  // 7. Redimensionamento suave do mapa
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const classifiedAtos = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
+      const summaries = computeEtecSummaries(classifiedAtos, appState.processos);
+      renderMap(summaries, summaries);
+    }, 200);
+  });
+
+  if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === 'function') {
+    window.notebookAppApi.notifyAppReady();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
 </body>
 </html>
