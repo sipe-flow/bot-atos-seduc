@@ -1120,7 +1120,7 @@
           <input id="filter-search" type="text" class="field-control" placeholder="Ex.: Enfermagem, Portaria 123..." oninput="onFilterChange()">
         </div>
         <div class="filter-actions">
-          <button type="button" class="btn btn-secondary" onclick="clearAllFilters()" style="width:100%;">
+          <button id="btn-clear-filters" type="button" class="btn btn-secondary" onclick="clearAllFilters()" style="width:100%;">
             <i data-lucide="rotate-ccw" aria-hidden="true" style="width:15px;height:15px;"></i>
             Limpar Filtros
           </button>
@@ -2304,19 +2304,35 @@ async function carregarDadosPlanilhaOnline() {
       sel.value = currentVal;
     }
 
-    function syncFilterControlsFromState() {
+     function syncFilterControlsFromState() {
       const selEtec = document.getElementById(`filter-etec`);
       const selRisk = document.getElementById(`filter-risk`);
       const selHorizon = document.getElementById(`filter-horizon`);
       const inpSearch = document.getElementById(`filter-search`);
       const badgeSource = document.getElementById(`data-source-badge`);
+      const btnClear = document.getElementById(`btn-clear-filters`);
 
       if (selEtec) selEtec.value = String(appState.selectedEtec);
       if (selRisk) selRisk.value = appState.riskFilter;
       if (selHorizon) selHorizon.value = String(appState.horizonDays);
       if (inpSearch) inpSearch.value = appState.searchQuery;
       if (badgeSource) badgeSource.innerHTML = `FONTE: <strong>${escapeHtml(appState.customSourceLabel)}</strong>`;
-    }
+
+      // 🔒 TRAVA: Se a ETEC estiver restrita pela URL, desativa o botão Limpar Filtros e a seleção
+      if (appState.lockedEtec) {
+        if (selEtec) {
+          selEtec.disabled = true;
+          selEtec.style.backgroundColor = "var(--surface-container-high, #f1f5f9)";
+          selEtec.style.cursor = "not-allowed";
+          selEtec.title = "Visualização restrita à sua ETEC vinculada.";
+        }
+        if (btnClear) {
+          btnClear.disabled = true;
+          btnClear.style.opacity = "0.4";
+          btnClear.style.cursor = "not-allowed";
+          btnClear.title = "Ação bloqueada: a exibição está vinculada à sua unidade.";
+        }
+      }
 
     function escapeHtml(txt) {
       return String(txt || ``)
@@ -3521,7 +3537,13 @@ ${corpoTexto}
     }
 
     function clearAllFilters() {
-      appState.selectedEtec = `TODAS`;
+      // 🔒 Se a ETEC estiver travada, NUNCA volta para TODAS
+      if (appState.lockedEtec) {
+        appState.selectedEtec = String(appState.lockedEtec);
+        appState.activeUnitDossier = Number(appState.lockedEtec);
+      } else {
+        appState.selectedEtec = `TODAS`;
+      }
       appState.riskFilter = `TODOS`;
       appState.horizonDays = 180;
       appState.searchQuery = ``;
@@ -3766,21 +3788,31 @@ function exportFilteredCsv() {
     // 15. INITIALIZATION
     // =========================================================================
     async function initApp() {
-      // 1. Carrega estados locais persistidos (se houver)
       await loadSavedState();
 
-      // 2. CARREGAMENTO AUTOMÁTICO AO ABRIR O SITE (377 CURSOS DA PLANILHA REAL)
-      // Faz o carregamento direto da planilha online sem precisar clicar no botão
-      const ok = await carregarDadosPlanilhaOnline();
-      
-      const badge = document.getElementById('data-source-badge');
-      if (ok) {
-        const totalAtos = (appState.atos && appState.atos.length) ? appState.atos.length : 377;
-        const totalProc = (appState.processos && appState.processos.length) ? appState.processos.length : 795;
-        if (badge) {
-          badge.innerHTML = 'FONTE: <strong>SIGEDUCA / CEE-MT</strong> (' + totalAtos + ' ATOS · ' + totalProc + ' PROCESSOS SIPE)';
+      // 🔒 Detecta se veio com parâmetro ?etec=... na URL e fixa a trava
+      const params = new URLSearchParams(window.location.search);
+      const etecParam = params.get('etec');
+      if (etecParam && etecParam.trim() !== '' && etecParam.toUpperCase() !== 'TODAS') {
+        const termo = decodeURIComponent(etecParam).trim().toUpperCase();
+        const encontrada = ETECS_MASTER.find(e => 
+          String(e.cod) === termo ||
+          e.key.toUpperCase() === termo ||
+          e.cidade.toUpperCase() === termo ||
+          e.nome.toUpperCase().includes(termo) ||
+          termo.includes(e.cidade.toUpperCase())
+        );
+        if (encontrada) {
+          appState.lockedEtec = encontrada.cod;
+          appState.selectedEtec = String(encontrada.cod);
+          appState.activeUnitDossier = encontrada.cod;
         }
       }
+
+      // CARREGAMENTO AUTOMÁTICO EM TEMPO REAL DAS PLANILHAS GOOGLE ONLINE
+      await carregarDadosPlanilhaOnline();
+      populateEtecDropdown();
+      syncFilterControlsFromState();
 
       // 3. Atualiza data-base no cabeçalho se houver elemento
       var elData = document.getElementById('data-base-val');
