@@ -3787,30 +3787,38 @@ function exportFilteredCsv() {
     // =========================================================================
     // 15. INITIALIZATION
     // =========================================================================
-    async function initApp() {
+     async function initApp() {
       await loadSavedState();
-
-      // 🔒 Detecta se veio com parâmetro ?etec=... na URL e fixa a trava
-      const params = new URLSearchParams(window.location.search);
-      const etecParam = params.get('etec');
-      if (etecParam && etecParam.trim() !== '' && etecParam.toUpperCase() !== 'TODAS') {
-        const termo = decodeURIComponent(etecParam).trim().toUpperCase();
-        const encontrada = ETECS_MASTER.find(e => 
-          String(e.cod) === termo ||
-          e.key.toUpperCase() === termo ||
-          e.cidade.toUpperCase() === termo ||
-          e.nome.toUpperCase().includes(termo) ||
-          termo.includes(e.cidade.toUpperCase())
-        );
-        if (encontrada) {
-          appState.lockedEtec = encontrada.cod;
-          appState.selectedEtec = String(encontrada.cod);
-          appState.activeUnitDossier = encontrada.cod;
-        }
-      }
 
       // CARREGAMENTO AUTOMÁTICO EM TEMPO REAL DAS PLANILHAS GOOGLE ONLINE
       await carregarDadosPlanilhaOnline();
+
+      // 🔒 DETECÇÃO BLINDADA DA ETEC NA URL (Normaliza acentos e espaços)
+      const params = new URLSearchParams(window.location.search);
+      const etecParam = params.get('etec');
+      if (etecParam && etecParam.trim() !== '' && etecParam.toUpperCase() !== 'TODAS') {
+        const termoLimpo = decodeURIComponent(etecParam)
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .trim().toUpperCase();
+
+        const encontrada = ETECS_MASTER.find(e => {
+          const nomeNorm = (e.nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+          const cidNorm = (e.cidade || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+          const keyNorm = (e.key || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+          return String(e.cod) === termoLimpo || 
+                 cidNorm === termoLimpo || 
+                 keyNorm === termoLimpo || 
+                 nomeNorm.includes(termoLimpo) ||
+                 termoLimpo.includes(cidNorm);
+        });
+
+        if (encontrada) {
+          appState.lockedEtec = encontrada.cod;
+          appState.selectedEtec = String(encontrada.cod);
+          appState.activeUnitDossier = Number(encontrada.cod);
+        }
+      }
+
       populateEtecDropdown();
       syncFilterControlsFromState();
 
