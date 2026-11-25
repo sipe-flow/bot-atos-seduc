@@ -1120,11 +1120,11 @@
           <input id="filter-search" type="text" class="field-control" placeholder="Ex.: Enfermagem, Portaria 123..." oninput="onFilterChange()">
         </div>
         <div class="filter-actions">
-          <button type="button" class="btn btn-secondary" onclick="clearAllFilters()" style="width:100%;">
-            <i data-lucide="rotate-ccw" aria-hidden="true" style="width:15px;height:15px;"></i>
-            Limpar Filtros
-          </button>
-        </div>
+        <button id="btn-clear-filters" type="button" class="btn btn-secondary" onclick="clearAllFilters()" style="width:100%;">
+        <i data-lucide="rotate-ccw" aria-hidden="true" style="width:15px;height:15px;"></i>
+        Limpar Filtros
+       </button>
+       </div>
       </div>
     </section>
 
@@ -3520,15 +3520,22 @@ ${corpoTexto}
       renderAll();
     }
 
-    function clearAllFilters() {
-      appState.selectedEtec = `TODAS`;
-      appState.riskFilter = `TODOS`;
-      appState.horizonDays = 180;
-      appState.searchQuery = ``;
-      syncFilterControlsFromState();
-      persistState();
-      renderAll();
-    }
+  function clearAllFilters() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const etecParam = urlParams.get('etec');
+
+  // 🔒 Se a URL veio com uma ETEC restrita, NUNCA volta para TODAS
+  if (!etecParam || etecParam === 'TODAS') {
+    appState.selectedEtec = `TODAS`;
+  }
+
+  appState.riskFilter = `TODOS`;
+  appState.horizonDays = 180;
+  appState.searchQuery = ``;
+  syncFilterControlsFromState();
+  persistState();
+  renderAll();
+  }
 
     function selectEtecUnit(cod) {
       // 🔒 TRAVA DE UNIDADE ESCOLAR: Se o acesso veio restrito para uma ETEC, não permite trocar nem desmarcar
@@ -3810,15 +3817,24 @@ function exportFilteredCsv() {
         appState.activeUnitDossier = etecEncontrada.cod;
         syncFilterControlsFromState();
 
-        // 🔒 TRAVA DO SELETOR DE ESCOLAS: Impede o servidor de mudar de unidade
-        const selFiltro = document.getElementById('filter-etec');
-        if (selFiltro) {
-          selFiltro.disabled = true;
-          selFiltro.title = 'Acesso restrito à sua unidade escolar.';
-          selFiltro.style.backgroundColor = '#f1f5f9';
-          selFiltro.style.cursor = 'not-allowed';
-        }
+       // 🔒 TRAVA DO SELETOR DE ESCOLAS: Impede o servidor de mudar de unidade
+      const selFiltro = document.getElementById('filter-etec');
+      if (selFiltro) {
+        selFiltro.disabled = true;
+        selFiltro.title = 'Acesso restrito à sua unidade escolar.';
+        selFiltro.style.backgroundColor = '#f1f5f9';
+        selFiltro.style.cursor = 'not-allowed';
       }
+
+      // 🔒 TRAVA DO BOTÃO LIMPAR FILTROS: Bloqueia o botão se for acesso de ETEC
+      const btnLimpar = document.getElementById('btn-clear-filters');
+      if (btnLimpar) {
+        btnLimpar.disabled = true;
+        btnLimpar.style.opacity = '0.4';
+        btnLimpar.style.cursor = 'not-allowed';
+        btnLimpar.title = 'Acesso fixado na sua unidade escolar.';
+        }
+       }
      }
 
       // 5. Sincroniza abas ativas
