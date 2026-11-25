@@ -2641,6 +2641,13 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
           }
         });
 
+      // 🔒 TRAVA DO MAPA: Se for acesso restrito da ETEC, desativa o clique nos outros municípios
+      const urlBloqueioMapa = new URLSearchParams(window.location.search).get('etec');
+      if (urlBloqueioMapa && urlBloqueioMapa !== 'TODAS') {
+        nodes.style(`pointer-events`, d => Number(appState.selectedEtec) === d.cod ? `auto` : `none`)
+             .style(`opacity`, d => Number(appState.selectedEtec) === d.cod ? 1 : 0.4);
+      }
+
       // Zoom behavior
       mapZoomBehavior = d3.zoom()
         .scaleExtent([1, 5])
@@ -3524,6 +3531,13 @@ ${corpoTexto}
     }
 
     function selectEtecUnit(cod) {
+      // 🔒 TRAVA DE UNIDADE ESCOLAR: Se o acesso veio restrito para uma ETEC, não permite trocar nem desmarcar
+      const urlParams = new URLSearchParams(window.location.search);
+      const etecBloqueada = urlParams.get('etec');
+      if (etecBloqueada && etecBloqueada !== 'TODAS') {
+        return; // Bloqueia a troca e mantém fixo na escola dele
+      }
+
       const numCod = Number(cod);
       if (Number(appState.selectedEtec) === numCod) {
         appState.selectedEtec = `TODAS`;
@@ -3536,7 +3550,14 @@ ${corpoTexto}
       renderAll();
     }
 
-    function focusUnitDossier(cod) {
+  function focusUnitDossier(cod) {
+      // 🔒 TRAVA DO DOSSIÊ: Mantém fixo na unidade escolar do servidor
+      const urlParams = new URLSearchParams(window.location.search);
+      const etecBloqueada = urlParams.get('etec');
+      if (etecBloqueada && etecBloqueada !== 'TODAS') {
+        return; // Impede abrir dossiê de outra escola
+      }
+
       appState.activeUnitDossier = Number(cod);
       if (appState.selectedEtec !== `TODAS`) {
         appState.selectedEtec = String(cod);
@@ -3771,7 +3792,7 @@ function exportFilteredCsv() {
       populateEtecDropdown();
       syncFilterControlsFromState();
 
-          // 👇 A PARTE 2 ENTRA EXATAMENTE AQUI:
+    // 👇 A PARTE 2 ENTRA EXATAMENTE AQUI:
     // 🎯 FILTRO AUTOMÁTICO VIA EXTENSÃO: Lê se veio uma ETEC específica na URL (?etec=Matupá)
     const urlParams = new URLSearchParams(window.location.search);
     const etecParam = urlParams.get('etec');
@@ -3788,9 +3809,17 @@ function exportFilteredCsv() {
         appState.selectedEtec = String(etecEncontrada.cod);
         appState.activeUnitDossier = etecEncontrada.cod;
         syncFilterControlsFromState();
+
+        // 🔒 TRAVA DO SELETOR DE ESCOLAS: Impede o servidor de mudar de unidade
+        const selFiltro = document.getElementById('filter-etec');
+        if (selFiltro) {
+          selFiltro.disabled = true;
+          selFiltro.title = 'Acesso restrito à sua unidade escolar.';
+          selFiltro.style.backgroundColor = '#f1f5f9';
+          selFiltro.style.cursor = 'not-allowed';
+        }
       }
-    }
-    // 👆 FIM DA PARTE 2
+     }
 
       // 5. Sincroniza abas ativas
       const crossBtn = document.querySelector(`[data-cross-tab="${appState.crossTab}"]`);
