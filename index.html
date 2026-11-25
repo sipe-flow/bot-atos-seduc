@@ -3771,6 +3771,27 @@ function exportFilteredCsv() {
       populateEtecDropdown();
       syncFilterControlsFromState();
 
+          // 👇 A PARTE 2 ENTRA EXATAMENTE AQUI:
+    // 🎯 FILTRO AUTOMÁTICO VIA EXTENSÃO: Lê se veio uma ETEC específica na URL (?etec=Matupá)
+    const urlParams = new URLSearchParams(window.location.search);
+    const etecParam = urlParams.get('etec');
+    if (etecParam && etecParam !== 'TODAS') {
+      const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+      const pNorm = norm(etecParam);
+      const etecEncontrada = ETECS_MASTER.find(e => 
+        norm(e.cidade) === pNorm || 
+        norm(e.nome) === pNorm || 
+        norm(e.key) === pNorm || 
+        String(e.cod) === pNorm
+      );
+      if (etecEncontrada) {
+        appState.selectedEtec = String(etecEncontrada.cod);
+        appState.activeUnitDossier = etecEncontrada.cod;
+        syncFilterControlsFromState();
+      }
+    }
+    // 👆 FIM DA PARTE 2
+
       // 5. Sincroniza abas ativas
       const crossBtn = document.querySelector(`[data-cross-tab="${appState.crossTab}"]`);
       if (crossBtn) setCrossTab(appState.crossTab, crossBtn);
