@@ -3537,10 +3537,10 @@ ${corpoTexto}
     }
 
     function clearAllFilters() {
-      // 🔒 Se a ETEC estiver travada, NUNCA volta para TODAS
-      if (appState.lockedEtec) {
-        appState.selectedEtec = String(appState.lockedEtec);
-        appState.activeUnitDossier = Number(appState.lockedEtec);
+      // Se houver trava de ETEC na URL, mantém o código dela; senão, volta para TODAS
+      if (window.ETEC_TRAVADA_COD) {
+        appState.selectedEtec = String(window.ETEC_TRAVADA_COD);
+        appState.activeUnitDossier = Number(window.ETEC_TRAVADA_COD);
       } else {
         appState.selectedEtec = `TODAS`;
       }
