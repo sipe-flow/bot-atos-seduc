@@ -4098,8 +4098,18 @@ function exportFilteredCsv() {
           ".box-recom li { margin-bottom: 3px; }" +
           ".signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; page-break-inside: avoid; text-align: center; }" +
           ".sig-line { border-top: 1px solid #64748b; padding-top: 5px; font-size: 9.5px; font-weight: 700; }" +
-          "@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
+          "@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } }" +
         "</style></head><body>" +
+
+        "<div class='no-print' style='background:#0f172a; color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-radius:6px; font-family:sans-serif;'>" +
+          "<span>📄 <strong>Visualização Prévia do Relatório Executivo Oficial</strong></span>" +
+          "<div>" +
+            "<button onclick='window.print()' style='background:#16a34a; color:#fff; border:none; padding:7px 15px; border-radius:4px; font-weight:700; font-size:12px; cursor:pointer; margin-right:8px;'>🖨️ Salvar como PDF / Imprimir</button>" +
+            "<button onclick='window.close()' style='background:#64748b; color:#fff; border:none; padding:7px 12px; border-radius:4px; font-weight:700; font-size:12px; cursor:pointer;'>✕ Fechar</button>" +
+          "</div>" +
+        "</div>" +
+
+        "<div class='header-box'>" +
 
         "<div class='header-box'>" +
           "<div>" +
