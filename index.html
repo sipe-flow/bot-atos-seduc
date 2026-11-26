@@ -4051,16 +4051,51 @@ function exportFilteredCsv() {
         var linhasCursos = atosTrabalho.map(function(c) {
           var badgeCor = "#dcfce7; color:#15803d";
           var badgeTexto = "VIGENTE";
-          if (c.category === "VENCIDO_DESCOBERTO") { badgeCor = "#fee2e2; color:#b91c1c"; badgeTexto = "VENCIDO DESCOBERTO"; }
-          else if (c.category === "VENCIDO_COBERTO") { badgeCor = "#fef3c7; color:#b45309"; badgeTexto = "VENCIDO (C/ PROCESSO)"; }
-          else if (c.category === "A_VENCER") { badgeCor = "#e0f2fe; color:#0369a1"; badgeTexto = "PRÓXIMO VENCIMENTO"; }
+          if (c.category === "VENCIDO_DESCOBERTO" || c.category === "VENCIDO_COBERTO") {
+            badgeCor = "#fee2e2; color:#b91c1c";
+            badgeTexto = "VENCIDO";
+          } else if (c.category === "A_VENCER") {
+            badgeCor = "#fef3c7; color:#b45309";
+            badgeTexto = "PRÓXIMO VENCIMENTO";
+          }
+
+          // 📅 CÁLCULO EXATO DO PRAZO LIMITE (1 ANO DE ANTECEDÊNCIA)
+          var prazoTexto = "—";
+          var endDate = c.endDate;
+          if (!endDate && c.validade) {
+            var matches = String(c.validade).match(/\b\d{2}\/\d{2}\/\d{4}\b/g);
+            if (matches && matches.length > 0) {
+              var p = matches[matches.length - 1].split("/");
+              endDate = new Date(Number(p[2]), Number(p[1]) - 1, Number(p[0]));
+            }
+          }
+
+          if (endDate && !isNaN(endDate.getTime())) {
+            var dataLimite = new Date(endDate.getTime());
+            dataLimite.setFullYear(dataLimite.getFullYear() - 1);
+            var dia = String(dataLimite.getDate()).padStart(2, "0");
+            var mes = String(dataLimite.getMonth() + 1).padStart(2, "0");
+            var ano = dataLimite.getFullYear();
+            var limiteStr = dia + "/" + mes + "/" + ano;
+
+            var hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+
+            if (endDate < hoje) {
+              prazoTexto = "<span style='color:#b91c1c; font-weight:700;'>Expirado (" + limiteStr + ")</span>";
+            } else if (dataLimite < hoje) {
+              prazoTexto = "<span style='color:#b45309; font-weight:700;'>Prazo Vencido (era " + limiteStr + ")</span>";
+            } else {
+              prazoTexto = "<span style='color:#15803d; font-weight:700;'>Até " + limiteStr + "</span>";
+            }
+          }
 
           return "<tr>" +
             "<td style='font-weight:700;'>" + c.curso + "</td>" +
             "<td>" + (c.doc || c.ato || "-") + "</td>" +
             "<td style='text-align:center; font-weight:600;'>" + (c.validade || "-") + "</td>" +
             "<td style='text-align:center;'><span style='background:" + badgeCor + "; padding:2px 6px; border-radius:4px; font-weight:700; font-size:9px;'>" + badgeTexto + "</span></td>" +
-            "<td style='font-size:10px;'>" + (c.matchedProcess ? "Processo SIPE: " + (c.matchedProcess.processo || c.matchedProcess.num || "Identificado") : "Sem processo vinculado") + "</td>" +
+            "<td style='text-align:center; font-size:10px;'>" + prazoTexto + "</td>" +
           "</tr>";
         }).join("");
 
@@ -4070,7 +4105,7 @@ function exportFilteredCsv() {
 
         secao3Conteudo = "<h2>3. Relação Nominal dos Cursos Técnicos da Unidade</h2>" +
           "<table>" +
-            "<thead><tr><th>Curso Técnico</th><th>Ato Regulatório</th><th style='text-align:center;'>Validade</th><th style='text-align:center;'>Status</th><th>Processo SIPE/CEE</th></tr></thead>" +
+            "<thead><tr><th>Curso Técnico</th><th>Ato Regulatório</th><th style='text-align:center;'>Validade</th><th style='text-align:center;'>Status</th><th style='text-align:center;'>Prazo Limite Protocolo (1 ano antes)</th></tr></thead>" +
             "<tbody>" + linhasCursos + "</tbody>" +
           "</table>";
       }
