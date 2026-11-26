@@ -2445,6 +2445,13 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
       const vigentesPct = totalCursos > 0 ? Math.round((vigentes / totalCursos) * 100) : 0;
       const vencidosPct = totalCursos > 0 ? Math.round((totalVencidos / totalCursos) * 100) : 0;
 
+      // 🔄 SINCRONIZAÇÃO DINÂMICA DO CABEÇALHO COM OS ATOS AUDITADOS
+      const badgeSource = document.getElementById('data-source-badge');
+      if (badgeSource) {
+        const procsAtivos = filteredProcessos.filter(p => isActiveProcessStatus(p.situacao)).length;
+        badgeSource.innerHTML = `FONTE: <strong>SIGEDUCA / CEE-MT (${totalCursos} ATOS · ${procsAtivos} PROCESSOS ATIVOS)</strong>`;
+      }
+
       // CARD 1: Cursos Técnicos Monitorados (Total de Habilitações Cadastradas)
       if (kpiTotalCursos) kpiTotalCursos.textContent = String(totalCursos);
       if (kpiRegularesSub) kpiRegularesSub.textContent = `Catálogo Estadual · Atos e Habilitações no CEE-MT`;
