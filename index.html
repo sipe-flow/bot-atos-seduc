@@ -4024,17 +4024,19 @@ function exportFilteredCsv() {
       }
 
       var secao3Conteudo = "";
-      if (escolaEscolhida === "TODAS") {
-        var etecsCriticas = summaries.filter(function(s) { return s.risk === "VERMELHO" || s.risk === "AMARELO"; });
+      var etecsCriticas = summaries.filter(function(s) { return s.risk === "VERMELHO" || s.risk === "AMARELO"; });
         var linhasCriticas = etecsCriticas.map(function(e) {
           var corTag = e.risk === "VERMELHO" ? "#fee2e2; color:#b91c1c" : "#fef3c7; color:#b45309";
           var rotuloTag = e.risk === "VERMELHO" ? "CRÍTICO" : "ATENÇÃO";
+          var qtdVencidos = e.totalVencidos || (e.vencidosCobertos + e.vencidosDescobertos) || 0;
+          var qtdAbertos = e.activeProcessCount || (e.processos ? e.processos.length : 0);
+
           return "<tr>" +
             "<td style='font-weight:700;'>" + e.nome + " (" + e.cidade + ")</td>" +
             "<td style='text-align:center;'><span style='background:" + corTag + "; padding:2px 6px; border-radius:4px; font-weight:700; font-size:9.5px;'>" + rotuloTag + "</span></td>" +
-            "<td style='text-align:center; font-weight:700; color:#dc2626;'>" + (e.vencidosDescobertos || 0) + " sem processo</td>" +
-            "<td style='text-align:center; font-weight:700; color:#0284c7;'>" + (e.processos ? e.processos.length : 0) + " protocolados</td>" +
-            "<td style='font-size:10px; color:#475569;'>" + (e.vencidosDescobertos > 0 ? "Notificação imediata para abertura de processo de renovação." : "Acompanhamento do trâmite do processo no CEE-MT.") + "</td>" +
+            "<td style='text-align:center; font-weight:700; color:#dc2626;'>" + qtdVencidos + " vencidos</td>" +
+            "<td style='text-align:center; font-weight:700; color:#0284c7;'>" + qtdAbertos + " abertos</td>" +
+            "<td style='font-size:10px; color:#475569;'>" + (qtdVencidos > 0 ? "Verificar trâmite dos processos abertos e notificar sobre cursos pendentes de ato." : "Acompanhamento ordinário do fluxo processual no CEE-MT.") + "</td>" +
           "</tr>";
         }).join("");
 
@@ -4044,7 +4046,7 @@ function exportFilteredCsv() {
 
         secao3Conteudo = "<h2>3. Unidades em Situação de Atenção e Ações de Fiscalização</h2>" +
           "<table>" +
-            "<thead><tr><th>Unidade Escolar</th><th style='text-align:center;'>Nível de Risco</th><th style='text-align:center;'>Cursos Descobertos</th><th style='text-align:center;'>Processos SIPE</th><th>Encaminhamento Fiscalizatório</th></tr></thead>" +
+            "<thead><tr><th>Unidade Escolar</th><th style='text-align:center;'>Nível de Risco</th><th style='text-align:center;'>Cursos Vencidos</th><th style='text-align:center;'>Processos SIPE (Abertos)</th><th>Encaminhamento Fiscalizatório</th></tr></thead>" +
             "<tbody>" + linhasCriticas + "</tbody>" +
           "</table>";
       } else {
