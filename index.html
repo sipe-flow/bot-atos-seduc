@@ -4178,7 +4178,7 @@ function exportFilteredCsv() {
       }
     }
 
-function executarBuscaInteligente() {
+ function executarBuscaInteligente() {
       var inputEl = document.getElementById("input-busca-ia");
       if (!inputEl) return;
       var query = inputEl.value.trim();
@@ -4201,14 +4201,12 @@ function executarBuscaInteligente() {
         var atosTrabalho = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
         var qNorm = limpar(query);
 
-        // Intenção Temporal
         var querSemana = qNorm.includes("SEMANA") || qNorm.includes("ESSES DIAS") || qNorm.includes("ESTES DIAS") || qNorm.includes("RECENT") || qNorm.includes("ULTIMOS DIAS") || qNorm.includes("RECEM");
         var querHoje = qNorm.includes("HOJE") || qNorm.includes("NESTA DATA") || qNorm.includes("DIA DE HOJE");
         var querMes = qNorm.includes("MES") || qNorm.includes("30 DIAS");
         var quer180 = qNorm.includes("180 DIAS") || qNorm.includes("6 MESES") || qNorm.includes("SEIS MESES");
         var quer1Ano = qNorm.includes("1 ANO") || qNorm.includes("UM ANO") || qNorm.includes("12 MESES") || qNorm.includes("DOZE MESES");
 
-        // Intenção de Status
         var querVencidos = qNorm.includes("VENC") || qNorm.includes("EXPIR") || qNorm.includes("ATRAS") || querSemana || querHoje;
         var querAVencer = qNorm.includes("A VENCER") || qNorm.includes("VAI VENCER") || qNorm.includes("PRESTES") || qNorm.includes("PROXIM");
         var querVigentes = qNorm.includes("VIGENT") || qNorm.includes("REGULAR") || qNorm.includes("ATIV");
@@ -4217,7 +4215,6 @@ function executarBuscaInteligente() {
 
         var dataRef = new Date(2026, 10, 26);
 
-        // Extrai palavras-chave reais da busca (ignora termos genéricos de preenchimento)
         var stopWords = [
           "INSTITUICAO", "INSTITUICOES", "ESCOLA", "ESCOLAS", "ETEC", "ETECS",
           "CURSO", "CURSOS", "COM", "SEM", "DE", "DA", "DO", "DAS", "DOS",
@@ -4231,14 +4228,12 @@ function executarBuscaInteligente() {
         });
 
         var filtrados = atosTrabalho.filter(function(item) {
-          // 1. Filtro Temporal de Semana / Hoje
           if (querSemana || (querHoje && !querVigentes)) {
             if (!item.endDate) return false;
             var diffDias = Math.floor((dataRef.getTime() - item.endDate.getTime()) / (1000 * 60 * 60 * 24));
             if (diffDias < 0 || diffDias > 7) return false;
           }
 
-          // 2. Horizontes Futuros
           if (querMes && !querSemana && !querHoje) {
             if (item.category !== "A_VENCER" || item.daysRemaining < 0 || item.daysRemaining > 30) return false;
           }
@@ -4249,7 +4244,6 @@ function executarBuscaInteligente() {
             if (item.category !== "A_VENCER" || item.daysRemaining < 0 || item.daysRemaining > 365) return false;
           }
 
-          // 3. Filtro de Categoria Regulamentar
           if (querVigentes) {
             if (item.category !== "VIGENTE") return false;
           } else if (querVencidos && !querSemana && !querHoje) {
@@ -4258,17 +4252,14 @@ function executarBuscaInteligente() {
             if (item.category !== "A_VENCER") return false;
           }
 
-          // 4. Filtro de Processo SIPE
           if (querSemProc && item.matchedProcess !== null) return false;
           if (querComProc && item.matchedProcess === null) return false;
 
-          // 5. Filtro RÍGIDO de Município / Escola / Curso
           if (termosEspecificos.length > 0) {
             var mNorm = limpar(item.municipio);
             var eNorm = limpar(item.escola);
             var cNorm = limpar(item.curso);
 
-            // Cada termo específico digitado (ex: "RONDONOPOLIS") DEVE bater em algum campo
             var atendeTermos = termosEspecificos.every(function(termo) {
               return mNorm.includes(termo) || eNorm.includes(termo) || cNorm.includes(termo);
             });
@@ -4281,8 +4272,7 @@ function executarBuscaInteligente() {
 
         ultimosResultadosIa = filtrados;
 
-        // Montagem do Parecer Preciso
-        var textoResumo = "Localizado(s) <strong>" + filtrados.length + " curso(s)</strong> atendendo rigorosamente aos critérios informados.";
+        var textoResumo = "Localizado(s) <strong>" + filtrados.length + " curso(s)</strong> para os critérios informados.";
         if (termosEspecificos.length > 0) {
           textoResumo = "Identificado(s) <strong>" + filtrados.length + " curso(s)</strong> para <strong>" + termosEspecificos.join(", ") + "</strong>" + (querVigentes ? " com status <strong>VIGENTE</strong>." : ".");
         }
@@ -4325,7 +4315,6 @@ function executarBuscaInteligente() {
         if (resumoEl) resumoEl.innerHTML = "❌ <strong>Erro no processamento:</strong> " + err.message;
       }
     }
-O Resultado Imediato:
     function exportarResultadoBuscaIa() {
       if (!ultimosResultadosIa || ultimosResultadosIa.length === 0) return;
       var csv = "\uFEFFMunicipio;Escola;Curso;Ato;Documento;Validade;Situacao;Processo_SIPE;Situacao_Processo\n";
