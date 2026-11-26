@@ -2187,8 +2187,11 @@ async function carregarDadosPlanilhaOnline() {
         const daysRemaining = endDate ? diffDays(endDate, REFERENCE_DATE) : null;
         const matchedProcess = findMatchingProcess(ato, processosList);
 
-        let category = `VIGENTE`; // VIGENTE | A_VENCER | VENCIDO_COBERTO | VENCIDO_DESCOBERTO
-        if (daysRemaining !== null && daysRemaining < 0) {
+        // 🛡️ REGRA ANTIFALSO POSITIVO: Se não tiver data final válida (ex: "/ /" ou sem fim), não classifica como VIGENTE
+        let category = `VIGENTE`;
+        if (!endDate || isNaN(endDate.getTime())) {
+          category = `SEM_VALIDADE`; // Ignorado da lista de vigentes
+        } else if (daysRemaining !== null && daysRemaining < 0) {
           category = matchedProcess ? `VENCIDO_COBERTO` : `VENCIDO_DESCOBERTO`;
         } else if (daysRemaining !== null && daysRemaining <= horizonDays) {
           category = `A_VENCER`;
