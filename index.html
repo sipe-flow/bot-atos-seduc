@@ -2195,30 +2195,35 @@ async function carregarDadosPlanilhaOnline() {
       return null;
     }
 
-    function classifyAtos(atosList, processosList, horizonDays) {
-      return atosList.map(ato => {
-        const endDate = parseEndDateFromValidade(ato.validade);
-        const daysRemaining = endDate ? diffDays(endDate, REFERENCE_DATE) : null;
-        const matchedProcess = findMatchingProcess(ato, processosList);
+ function classifyAtos(atosList, processosList, horizonDays) {
+      return (atosList || [])
+        // 🚫 FILTRO TOTAL: Se a validade contiver "/ /" ou não tiver data final válida, descarta o curso completamente
+        .filter(ato => {
+          const val = String(ato.validade || ``).trim();
+          if (!val || val.includes(`/ /`)) return false;
+          const endDate = parseEndDateFromValidade(val);
+          return endDate !== null && !isNaN(endDate.getTime());
+        })
+        .map(ato => {
+          const endDate = parseEndDateFromValidade(ato.validade);
+          const daysRemaining = diffDays(endDate, REFERENCE_DATE);
+          const matchedProcess = findMatchingProcess(ato, processosList);
 
-        // 🛡️ REGRA ANTIFALSO POSITIVO: Se não tiver data final válida (ex: "/ /" ou sem fim), não classifica como VIGENTE
-        let category = `VIGENTE`;
-        if (!endDate || isNaN(endDate.getTime())) {
-          category = `SEM_VALIDADE`; // Ignorado da lista de vigentes
-        } else if (daysRemaining !== null && daysRemaining < 0) {
-          category = matchedProcess ? `VENCIDO_COBERTO` : `VENCIDO_DESCOBERTO`;
-        } else if (daysRemaining !== null && daysRemaining <= horizonDays) {
-          category = `A_VENCER`;
-        }
+          let category = `VIGENTE`; // VIGENTE | A_VENCER | VENCIDO_COBERTO | VENCIDO_DESCOBERTO
+          if (daysRemaining < 0) {
+            category = matchedProcess ? `VENCIDO_COBERTO` : `VENCIDO_DESCOBERTO`;
+          } else if (daysRemaining <= horizonDays) {
+            category = `A_VENCER`;
+          }
 
-        return {
-          ...ato,
-          endDate,
-          daysRemaining,
-          matchedProcess,
-          category
-        };
-      });
+          return {
+            ...ato,
+            endDate,
+            daysRemaining,
+            matchedProcess,
+            category
+          };
+        });
     }
 
     function computeEtecSummaries(classifiedAtos, processosList) {
