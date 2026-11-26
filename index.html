@@ -4191,125 +4191,132 @@ function executarBuscaInteligente() {
 
       if (divResultado) divResultado.style.display = "block";
       if (btnExportar) btnExportar.style.display = "none";
-      if (resumoEl) resumoEl.innerHTML = "⏳ <strong>Processando inteligência analítica...</strong>";
 
-      var atosTrabalho = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
-      var qNorm = removerAcentos(query).toUpperCase();
+      try {
+        // Função auxiliar de limpeza segura
+        var limpar = function(str) {
+          if (!str) return "";
+          return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        };
 
-      // Reconhecimento Semântico Amplo de Tempo
-      var querSemana = qNorm.includes("SEMANA") || qNorm.includes("ESSES DIAS") || qNorm.includes("ESTES DIAS") || qNorm.includes("RECENT") || qNorm.includes("ULTIMOS DIAS") || qNorm.includes("RECEM");
-      var querHoje = qNorm.includes("HOJE") || qNorm.includes("NESTA DATA") || qNorm.includes("DIA DE HOJE");
-      var querMes = qNorm.includes("MES") || qNorm.includes("30 DIAS");
-      var quer180 = qNorm.includes("180 DIAS") || qNorm.includes("6 MESES") || qNorm.includes("SEIS MESES");
-      var quer1Ano = qNorm.includes("1 ANO") || qNorm.includes("UM ANO") || qNorm.includes("12 MESES") || qNorm.includes("DOZE MESES") || qNorm.includes("ANUAL");
+        var atosTrabalho = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
+        var qNorm = limpar(query);
 
-      // Reconhecimento de Situação e Status
-      var querVencidos = qNorm.includes("VENC") || qNorm.includes("EXPIR") || qNorm.includes("ATRAS") || querSemana || querHoje;
-      var querAVencer = qNorm.includes("A VENCER") || qNorm.includes("VAI VENCER") || qNorm.includes("PRESTES") || qNorm.includes("PROXIM");
-      var querVigentes = qNorm.includes("VIGENT") || qNorm.includes("REGULAR") || qNorm.includes("ATIV");
-      var querSemProc = qNorm.includes("SEM PROC") || qNorm.includes("DESCOBERT") || qNorm.includes("SEM SIPE") || qNorm.includes("NAO PROTOCOL");
-      var querComProc = qNorm.includes("COM PROC") || qNorm.includes("COBERT") || qNorm.includes("PROTOCOLO") || qNorm.includes("SIPE");
+        // Reconhecimento de Tempo
+        var querSemana = qNorm.includes("SEMANA") || qNorm.includes("ESSES DIAS") || qNorm.includes("ESTES DIAS") || qNorm.includes("RECENT") || qNorm.includes("ULTIMOS DIAS") || qNorm.includes("RECEM");
+        var querHoje = qNorm.includes("HOJE") || qNorm.includes("NESTA DATA") || qNorm.includes("DIA DE HOJE");
+        var querMes = qNorm.includes("MES") || qNorm.includes("30 DIAS");
+        var quer180 = qNorm.includes("180 DIAS") || qNorm.includes("6 MESES") || qNorm.includes("SEIS MESES");
+        var quer1Ano = qNorm.includes("1 ANO") || qNorm.includes("UM ANO") || qNorm.includes("12 MESES") || qNorm.includes("DOZE MESES");
 
-      // Data de referência do sistema: 26/11/2026 (Quinta-feira)
-      var dataRef = new Date(2026, 10, 26);
+        // Reconhecimento de Situação Regulamentar
+        var querVencidos = qNorm.includes("VENC") || qNorm.includes("EXPIR") || qNorm.includes("ATRAS") || querSemana || querHoje;
+        var querAVencer = qNorm.includes("A VENCER") || qNorm.includes("VAI VENCER") || qNorm.includes("PRESTES") || qNorm.includes("PROXIM");
+        var querVigentes = qNorm.includes("VIGENT") || qNorm.includes("REGULAR") || qNorm.includes("ATIV");
+        var querSemProc = qNorm.includes("SEM PROC") || qNorm.includes("DESCOBERT") || qNorm.includes("SEM SIPE") || qNorm.includes("NAO PROTOCOL");
+        var querComProc = qNorm.includes("COM PROC") || qNorm.includes("COBERT") || qNorm.includes("PROTOCOLO") || qNorm.includes("SIPE");
 
-      var filtrados = atosTrabalho.filter(function(item) {
-        // 1. Filtro Temporal Inteligente: Esta Semana / Recentes (janela de até 7 dias para trás)
-        if (querSemana || (querHoje && !qNorm.includes("VIGENT"))) {
-          if (!item.endDate) return false;
-          var diffDias = Math.floor((dataRef.getTime() - item.endDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDias < 0 || diffDias > 7) return false;
-        }
+        // Data de auditoria: 26/11/2026
+        var dataRef = new Date(2026, 10, 26);
 
-        // 2. Horizontes Futuros
-        if (querMes && !querSemana && !querHoje) {
-          if (item.category !== "A_VENCER" || item.daysRemaining < 0 || item.daysRemaining > 30) return false;
-        }
-        if (quer180) {
-          if (item.category !== "A_VENCER" || item.daysRemaining < 0 || item.daysRemaining > 180) return false;
-        }
-        if (quer1Ano) {
-          if (item.category !== "A_VENCER" || item.daysRemaining < 0 || item.daysRemaining > 365) return false;
-        }
+        var filtrados = atosTrabalho.filter(function(item) {
+          // 1. Janela temporal da semana corrente (últimos 7 dias, ex: Barra do Garças em 24/11)
+          if (querSemana || (querHoje && !qNorm.includes("VIGENT"))) {
+            if (!item.endDate) return false;
+            var diffDias = Math.floor((dataRef.getTime() - item.endDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDias < 0 || diffDias > 7) return false;
+          }
 
-        // 3. Status Geral (se não for busca estrita de semana)
-        if (querVencidos && !querSemana && !querHoje) {
-          if (item.category !== "VENCIDO_DESCOBERTO" && item.category !== "VENCIDO_COBERTO") return false;
-        }
-        if (querAVencer && !querMes && !quer180 && !quer1Ano) {
-          if (item.category !== "A_VENCER") return false;
-        }
-        if (querVigentes) {
-          if (item.category !== "VIGENTE") return false;
-        }
+          // 2. Horizontes Futuros
+          if (querMes && !querSemana && !querHoje) {
+            if (item.category !== "A_VENCER" || item.daysRemaining < 0 || item.daysRemaining > 30) return false;
+          }
+          if (quer180) {
+            if (item.category !== "A_VENCER" || item.daysRemaining < 0 || item.daysRemaining > 180) return false;
+          }
+          if (quer1Ano) {
+            if (item.category !== "A_VENCER" || item.daysRemaining < 0 || item.daysRemaining > 365) return false;
+          }
 
-        // 4. Processo SIPE
-        if (querSemProc && item.matchedProcess !== null) return false;
-        if (querComProc && item.matchedProcess === null) return false;
+          // 3. Status Geral
+          if (querVencidos && !querSemana && !querHoje) {
+            if (item.category !== "VENCIDO_DESCOBERTO" && item.category !== "VENCIDO_COBERTO") return false;
+          }
+          if (querAVencer && !querMes && !quer180 && !quer1Ano) {
+            if (item.category !== "A_VENCER") return false;
+          }
+          if (querVigentes) {
+            if (item.category !== "VIGENTE") return false;
+          }
 
-        // 5. Reconhecimento de Municípios e Cursos
-        var mNorm = removerAcentos(item.municipio || "").toUpperCase();
-        var eNorm = removerAcentos(item.escola || "").toUpperCase();
-        var cNorm = removerAcentos(item.curso || "").toUpperCase();
+          // 4. Processo SIPE
+          if (querSemProc && item.matchedProcess !== null) return false;
+          if (querComProc && item.matchedProcess === null) return false;
 
-        var palavras = qNorm.split(/\s+/).filter(function(p) {
-          return p.length > 3 && !["QUAIS", "CURSO", "CURSOS", "ESTAO", "ESTA", "VENCEU", "VENCERAM", "VENCIDO", "VENCIDOS", "HOJE", "SEMANA", "MES", "DIAS", "PARA"].includes(p);
+          // 5. Cidades / Unidades / Cursos
+          var mNorm = limpar(item.municipio);
+          var eNorm = limpar(item.escola);
+          var cNorm = limpar(item.curso);
+
+          var palavras = qNorm.split(/\s+/).filter(function(p) {
+            return p.length > 3 && !["QUAIS", "CURSO", "CURSOS", "ESTAO", "ESTA", "VENCEU", "VENCERAM", "VENCIDO", "VENCIDOS", "HOJE", "SEMANA", "MES", "DIAS", "PARA"].includes(p);
+          });
+
+          if (palavras.length > 0) {
+            var matchPalavra = palavras.some(function(p) {
+              return mNorm.includes(p) || eNorm.includes(p) || cNorm.includes(p);
+            });
+            if (!matchPalavra && (qNorm.includes("BARRA") || qNorm.includes("CUIABA") || qNorm.includes("ENFERMAGEM") || qNorm.includes("EDIFICACOES"))) {
+              return false;
+            }
+          }
+
+          return true;
         });
 
-        if (palavras.length > 0) {
-          var matchPalavra = palavras.some(function(p) {
-            return mNorm.includes(p) || eNorm.includes(p) || cNorm.includes(p);
-          });
-          if (!matchPalavra && (qNorm.includes("BARRA") || qNorm.includes("CUIABA") || qNorm.includes("ENFERMAGEM") || qNorm.includes("EDIFICACOES") || qNorm.includes("AGROPECUARIA"))) {
-            return false;
+        ultimosResultadosIa = filtrados;
+
+        var textoResumo = "Localizado(s) <strong>" + filtrados.length + " curso(s)</strong> para a consulta.";
+        if (querSemana || querHoje) {
+          textoResumo = "Identificado(s) <strong>" + filtrados.length + " curso(s) recém-vencido(s) nesta semana</strong> (janela de 7 dias até 26/11/2026).";
+        }
+
+        if (resumoEl) resumoEl.innerHTML = "✨ <strong>Parecer Inteligente:</strong> " + textoResumo;
+        if (btnExportar) btnExportar.style.display = filtrados.length > 0 ? "inline-block" : "none";
+
+        if (tbody) {
+          if (filtrados.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:18px; color:#64748b;'>Nenhum curso localizado para os critérios informados.</td></tr>";
+          } else {
+            tbody.innerHTML = filtrados.map(function(item) {
+              var badgeCor = "#dcfce7; color:#15803d";
+              var badgeTxt = "VIGENTE";
+              if (item.category === "VENCIDO_DESCOBERTO" || item.category === "VENCIDO_COBERTO") {
+                badgeCor = "#fee2e2; color:#b91c1c";
+                badgeTxt = "VENCIDO";
+              } else if (item.category === "A_VENCER") {
+                badgeCor = "#fef3c7; color:#b45309";
+                badgeTxt = "A VENCER";
+              }
+
+              var procInfo = "<span style='color:#dc2626; font-weight:600;'>Sem processo</span>";
+              if (item.matchedProcess) {
+                procInfo = "<span style='color:#0284c7; font-weight:700;'>Proc. " + item.matchedProcess.processo + "</span><br><small style='color:#64748b;'>" + item.matchedProcess.situacao + "</small>";
+              }
+
+              return "<tr style='border-bottom:1px solid #f1f5f9;'>" +
+                "<td style='padding:8px 10px; font-weight:600;'>" + item.municipio + "<br><small style='color:#64748b;'>" + item.escola + "</small></td>" +
+                "<td style='padding:8px 10px; font-weight:700; color:#1e293b;'>" + item.curso + "</td>" +
+                "<td style='padding:8px 10px; font-family:monospace;'>" + (item.validade || "—") + "</td>" +
+                "<td style='padding:8px 10px; text-align:center;'><span style='background:" + badgeCor + "; padding:2px 8px; border-radius:4px; font-weight:700; font-size:10px;'>" + badgeTxt + "</span></td>" +
+                "<td style='padding:8px 10px;'>" + procInfo + "</td>" +
+              "</tr>";
+            }).join("");
           }
         }
-
-        return true;
-      });
-
-      ultimosResultadosIa = filtrados;
-
-      // Diagnóstico Executivo Automatizado
-      var textoResumo = "Localizado(s) <strong>" + filtrados.length + " curso(s)</strong> para a consulta realizada.";
-      if (querSemana || querHoje) {
-        textoResumo = "Identificado(s) <strong>" + filtrados.length + " curso(s) recém-vencido(s) nesta semana</strong> (com janela regulatória de 7 dias até 26/11/2026).";
-      } else if (querSemProc && querVencidos) {
-        textoResumo = "Identificado(s) <strong>" + filtrados.length + " curso(s) vencido(s) sem processo SIPE protocolado</strong> (risco regulatório crítico).";
-      }
-
-      if (resumoEl) resumoEl.innerHTML = "✨ <strong>Parecer Inteligente:</strong> " + textoResumo;
-      if (btnExportar) btnExportar.style.display = filtrados.length > 0 ? "inline-block" : "none";
-
-      if (tbody) {
-        if (filtrados.length === 0) {
-          tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:18px; color:#64748b;'>Nenhum curso localizado para os critérios informados.</td></tr>";
-        } else {
-          tbody.innerHTML = filtrados.map(function(item) {
-            var badgeCor = "#dcfce7; color:#15803d";
-            var badgeTxt = "VIGENTE";
-            if (item.category === "VENCIDO_DESCOBERTO" || item.category === "VENCIDO_COBERTO") {
-              badgeCor = "#fee2e2; color:#b91c1c";
-              badgeTxt = "VENCIDO";
-            } else if (item.category === "A_VENCER") {
-              badgeCor = "#fef3c7; color:#b45309";
-              badgeTxt = "A VENCER";
-            }
-
-            var procInfo = "<span style='color:#dc2626; font-weight:600;'>Sem processo</span>";
-            if (item.matchedProcess) {
-              procInfo = "<span style='color:#0284c7; font-weight:700;'>Proc. " + item.matchedProcess.processo + "</span><br><small style='color:#64748b;'>" + item.matchedProcess.situacao + "</small>";
-            }
-
-            return "<tr style='border-bottom:1px solid #f1f5f9;'>" +
-              "<td style='padding:8px 10px; font-weight:600;'>" + item.municipio + "<br><small style='color:#64748b;'>" + item.escola + "</small></td>" +
-              "<td style='padding:8px 10px; font-weight:700; color:#1e293b;'>" + item.curso + "</td>" +
-              "<td style='padding:8px 10px; font-family:monospace;'>" + (item.validade || "—") + "</td>" +
-              "<td style='padding:8px 10px; text-align:center;'><span style='background:" + badgeCor + "; padding:2px 8px; border-radius:4px; font-weight:700; font-size:10px;'>" + badgeTxt + "</span></td>" +
-              "<td style='padding:8px 10px;'>" + procInfo + "</td>" +
-            "</tr>";
-          }).join("");
-        }
+      } catch (err) {
+        console.error("Erro na busca:", err);
+        if (resumoEl) resumoEl.innerHTML = "❌ <strong>Erro no processamento:</strong> " + err.message;
       }
     }
 
