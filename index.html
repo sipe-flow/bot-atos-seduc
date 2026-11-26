@@ -3879,38 +3879,47 @@ function exportFilteredCsv() {
     document.addEventListener(`DOMContentLoaded`, initApp);
   </script>
           
- <!-- MODAL DE SELEÇÃO DE PERÍODO DO RELATÓRIO EXECUTIVO -->
+ <!-- MODAL DE SELEÇÃO: RELATÓRIO EXECUTIVO OFICIAL -->
   <div id="modal-relatorio-executivo" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.7); backdrop-filter:blur(4px); z-index:99999; align-items:center; justify-content:center;">
-    <div style="background:#ffffff; width:92%; max-width:440px; border-radius:10px; padding:24px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.3); border:1px solid #cbd5e1; font-family:sans-serif;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <h3 style="margin:0; font-size:16px; color:#0f172a; font-weight:800; display:flex; align-items:center; gap:8px;">
+    <div style="background:#ffffff; width:92%; max-width:460px; border-radius:10px; padding:22px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.3); border:1px solid #cbd5e1; font-family:sans-serif;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 style="margin:0; font-size:15px; color:#0f172a; font-weight:800; display:flex; align-items:center; gap:8px;">
           📊 Relatório Executivo Oficial
         </h3>
         <button type="button" onclick="fecharModalRelatorioExecutivo()" style="background:none; border:none; font-size:18px; color:#64748b; cursor:pointer;">✕</button>
       </div>
 
-      <p style="font-size:12px; color:#475569; margin-top:0; margin-bottom:16px;">
-        Selecione o corte temporal para a consolidação dos dados regulatórios das 17 ETECs:
+      <p style="font-size:11.5px; color:#475569; margin-top:0; margin-bottom:14px;">
+        Defina a abrangência e o período para a emissão do documento oficial:
       </p>
 
-      <div style="margin-bottom:14px;">
-        <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Periodicidade:</label>
-        <select id="relatorio-periodo-tipo" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px; color:#0f172a; background:#f8fafc;" onchange="ajustarCamposPeriodo()">
+      <!-- SELETOR DE ESCOLA / ABRANGÊNCIA -->
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:11.5px; font-weight:700; color:#334155; margin-bottom:5px;">Abrangência do Relatório:</label>
+        <select id="relatorio-escola-select" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1; font-size:12.5px; color:#0f172a; background:#f8fafc;">
+          <option value="TODAS">Todas as 17 ETECs (Visão Estadual Consolidada)</option>
+        </select>
+      </div>
+
+      <!-- SELETOR DE PERIODICIDADE -->
+      <div style="margin-bottom:12px;">
+        <label style="display:block; font-size:11.5px; font-weight:700; color:#334155; margin-bottom:5px;">Periodicidade:</label>
+        <select id="relatorio-periodo-tipo" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1; font-size:12.5px; color:#0f172a; background:#f8fafc;" onchange="ajustarCamposPeriodo()">
           <option value="MENSAL">Mensal (Mês Atual)</option>
           <option value="TRIMESTRAL" selected>Trimestral (Consolidado)</option>
           <option value="ANUAL">Anual (Exercício Regulatório)</option>
         </select>
       </div>
 
-      <div style="margin-bottom:20px;">
-        <label style="display:block; font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">Identificação do Período no Relatório:</label>
-        <input type="text" id="relatorio-periodo-texto" value="4º Trimestre / 2026" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px; color:#0f172a; box-sizing:border-box;">
+      <div style="margin-bottom:18px;">
+        <label style="display:block; font-size:11.5px; font-weight:700; color:#334155; margin-bottom:5px;">Identificação do Período no Documento:</label>
+        <input type="text" id="relatorio-periodo-texto" value="4º Trimestre / 2026" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1; font-size:12.5px; color:#0f172a; box-sizing:border-box;">
       </div>
 
       <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button type="button" onclick="fecharModalRelatorioExecutivo()" style="padding:9px 16px; border-radius:6px; border:1px solid #cbd5e1; background:#f1f5f9; color:#475569; font-size:12px; font-weight:700; cursor:pointer;">Cancelar</button>
-        <button type="button" onclick="gerarRelatorioExecutivoPdf()" style="padding:9px 18px; border-radius:6px; border:none; background:#0284c7; color:#ffffff; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;">
-          🖨️ Visualizar e Emitir PDF
+        <button type="button" onclick="fecharModalRelatorioExecutivo()" style="padding:8px 14px; border-radius:6px; border:1px solid #cbd5e1; background:#f1f5f9; color:#475569; font-size:11.5px; font-weight:700; cursor:pointer;">Cancelar</button>
+        <button type="button" onclick="gerarRelatorioExecutivoPdf()" style="padding:8px 16px; border-radius:6px; border:none; background:#0284c7; color:#ffffff; font-size:11.5px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;">
+          🖨️ Gerar e Emitir PDF
         </button>
       </div>
     </div>
@@ -3931,7 +3940,22 @@ function exportFilteredCsv() {
       verificarAcessoAdminRelatorio();
     }
 
+    function popularDropdownEscolasRelatorio() {
+      var sel = document.getElementById("relatorio-escola-select");
+      if (!sel || sel.options.length > 1) return;
+      if (typeof ETECS_MASTER !== "undefined" && Array.isArray(ETECS_MASTER)) {
+        var sorted = [...ETECS_MASTER].sort((a, b) => a.cidade.localeCompare(b.cidade, "pt-BR"));
+        sorted.forEach(function(e) {
+          var opt = document.createElement("option");
+          opt.value = String(e.cod);
+          opt.textContent = e.nome + " (" + e.cidade + ")";
+          sel.appendChild(opt);
+        });
+      }
+    }
+
     function abrirModalRelatorioExecutivo() {
+      popularDropdownEscolasRelatorio();
       var modal = document.getElementById("modal-relatorio-executivo");
       if (modal) modal.style.display = "flex";
     }
@@ -3958,94 +3982,143 @@ function exportFilteredCsv() {
       }
     }
 
-    // 📄 GERADOR DO RELATÓRIO EXECUTIVO ESTRUTURADO (A4 PROFISSIONAL)
+    // 📄 COMPILADOR ANALÍTICO DO RELATÓRIO EXECUTIVO (A4 LIMPO E VETORIAL)
     function gerarRelatorioExecutivoPdf() {
       var periodoRef = document.getElementById("relatorio-periodo-texto").value.trim() || "Período Vigente";
+      var escolaEscolhida = document.getElementById("relatorio-escola-select").value;
       fecharModalRelatorioExecutivo();
 
       var classifiedAtos = (typeof classifyAtos === "function" && appState.atos) ? classifyAtos(appState.atos, appState.processos, 180) : [];
       var summaries = (typeof computeEtecSummaries === "function") ? computeEtecSummaries(classifiedAtos, appState.processos) : [];
 
-      var totalAtos = classifiedAtos.length;
-      var vigentes = classifiedAtos.filter(function(a) { return a.status === "VIGENTE"; }).length;
-      var vencidos = classifiedAtos.filter(function(a) { return a.status === "VENCIDO"; }).length;
-      var criticos = classifiedAtos.filter(function(a) { return a.status === "CRITICO"; }).length;
-      var totalProcessos = (appState.processos || []).length;
-      var taxaConformidade = totalAtos > 0 ? Math.round((vigentes / totalAtos) * 100) : 0;
+      var atosTrabalho = classifiedAtos;
+      var procsTrabalho = appState.processos || [];
+      var etecInfo = null;
 
-      // Classificação de risco das 17 ETECs
-      var etecsCriticas = summaries.filter(function(s) { return s.risk === "VERMELHO"; });
-      var etecsAtencao = summaries.filter(function(s) { return s.risk === "AMARELO"; });
-      var etecsRegulares = summaries.filter(function(s) { return s.risk === "VERDE"; });
-
-      var linhasTabelaCriticas = etecsCriticas.map(function(e) {
-        return "<tr>" +
-          "<td style='font-weight:700; color:#b91c1c;'>" + e.nome + " (" + e.cidade + ")</td>" +
-          "<td style='text-align:center;'><span style='background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:4px; font-weight:700; font-size:10px;'>ALTO RISCO</span></td>" +
-          "<td style='text-align:center; font-weight:700;'>" + e.cursosVencidos + " cursos</td>" +
-          "<td style='text-align:center; font-weight:700; color:#0284c7;'>" + (e.processos ? e.processos.length : 0) + " protocolados</td>" +
-          "<td style='font-size:10px; color:#475569;'>Abertura imediata de processo regulatório e envio de notificação via canal institucional.</td>" +
-        "</tr>";
-      }).join("");
-
-      if (!linhasTabelaCriticas) {
-        linhasTabelaCriticas = "<tr><td colspan='5' style='text-align:center; color:#15803d; font-weight:700; padding:12px;'>Nenhuma unidade em situação crítica no período.</td></tr>";
+      // Se for selecionada uma unidade individual específica:
+      if (escolaEscolhida !== "TODAS") {
+        var codNum = Number(escolaEscolhida);
+        atosTrabalho = classifiedAtos.filter(function(a) { return Number(a.cod) === codNum; });
+        procsTrabalho = (appState.processos || []).filter(function(p) { return Number(p.cod) === codNum; });
+        if (typeof ETECS_MASTER !== "undefined") {
+          etecInfo = ETECS_MASTER.find(function(e) { return e.cod === codNum; });
+        }
       }
+
+      // Correção dos status baseada em `category`
+      var totalAtos = atosTrabalho.length;
+      var vigentes = atosTrabalho.filter(function(a) { return a.category === "VIGENTE"; }).length;
+      var aVencer = atosTrabalho.filter(function(a) { return a.category === "A_VENCER"; }).length;
+      var vencidosCobertos = atosTrabalho.filter(function(a) { return a.category === "VENCIDO_COBERTO"; }).length;
+      var vencidosDescobertos = atosTrabalho.filter(function(a) { return a.category === "VENCIDO_DESCOBERTO"; }).length;
+      var totalVencidos = vencidosCobertos + vencidosDescobertos;
+      var taxaConformidade = totalAtos > 0 ? Math.round(((vigentes + aVencer) / totalAtos) * 100) : 100;
+      var totalProcessos = procsTrabalho.length;
 
       var dataHoje = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-      var relatorioHtml = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'>" +
-        "<title>Relatório Executivo da Gestão — SIPE Flow MT</title>" +
-        "<style>" +
-          "@page { size: A4; margin: 14mm 14mm 14mm 14mm; }" +
-          "body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; font-size: 11px; line-height: 1.45; }" +
-          ".header-box { border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-end; }" +
-          ".inst-title { font-size: 16px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; }" +
-          ".inst-sub { font-size: 11px; font-weight: 600; color: #0284c7; margin: 2px 0 0 0; }" +
-          ".badge-periodo { background: #0f172a; color: #ffffff; padding: 5px 10px; border-radius: 4px; font-weight: 700; font-size: 11px; }" +
-          ".kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }" +
-          ".kpi-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; background: #f8fafc; text-align: center; }" +
-          ".kpi-val { font-size: 20px; font-weight: 800; margin-bottom: 2px; }" +
-          ".kpi-lbl { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; }" +
-          "h2 { font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-left: 3px solid #0284c7; padding-left: 6px; margin: 16px 0 8px 0; }" +
-          "table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 10.5px; }" +
-          "th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 6px 8px; border: 1px solid #cbd5e1; }" +
-          "td { padding: 6px 8px; border: 1px solid #e2e8f0; }" +
-          ".box-recom { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-top: 10px; }" +
-          ".box-recom li { margin-bottom: 4px; }" +
-          ".signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; page-break-inside: avoid; text-align: center; }" +
-          ".sig-line { border-top: 1px solid #64748b; padding-top: 6px; font-size: 10px; font-weight: 700; }" +
-          "@media print { body { -webkit-print-color-adjust: exact; } .no-print { display: none; } }" +
-        "</style></head><body>" +
+      var tituloEscopo = "Monitoramento Regulatório das 17 ETECs (Visão Estadual)";
+      var subTituloEscopo = "Diagnóstico consolidado de todas as unidades escolares de Educação Profissional e Tecnológica";
+      if (etecInfo) {
+        tituloEscopo = "Dossiê Regulatório da " + etecInfo.nome + " (" + etecInfo.cidade + ")";
+        subTituloEscopo = "Unidade Escolar: " + etecInfo.nomeCompleto + " · Código CEE/MT: " + etecInfo.cod;
+      }
 
-        "<div class='no-print' style='background:#0f172a; color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-radius:6px;'>" +
-          "<span>📄 <strong>Visualização Prévia do Relatório Executivo Oficial</strong></span>" +
-          "<div>" +
-            "<button onclick='window.print()' style='background:#16a34a; color:#fff; border:none; padding:7px 14px; border-radius:4px; font-weight:bold; cursor:pointer; margin-right:8px;'>🖨️ Salvar como PDF / Imprimir</button>" +
-            "<button onclick='window.close()' style='background:#64748b; color:#fff; border:none; padding:7px 12px; border-radius:4px; font-weight:bold; cursor:pointer;'>✕ Fechar</button>" +
-          "</div>" +
-        "</div>" +
+      // Seção 3 Dinâmica: Críticas Gerais OU Lista de Cursos da Escola
+      var secao3Conteudo = "";
+      if (escolaEscolhida === "TODAS") {
+        var etecsCriticas = summaries.filter(function(s) { return s.risk === "VERMELHO" || s.risk === "AMARELO"; });
+        var linhasCriticas = etecsCriticas.map(function(e) {
+          var corTag = e.risk === "VERMELHO" ? "#fee2e2; color:#b91c1c" : "#fef3c7; color:#b45309";
+          var rotuloTag = e.risk === "VERMELHO" ? "CRÍTICO" : "ATENÇÃO";
+          return "<tr>" +
+            "<td style='font-weight:700;'>" + e.nome + " (" + e.cidade + ")</td>" +
+            "<td style='text-align:center;'><span style='background:" + corTag + "; padding:2px 6px; border-radius:4px; font-weight:700; font-size:9.5px;'>" + rotuloTag + "</span></td>" +
+            "<td style='text-align:center; font-weight:700; color:#dc2626;'>" + (e.vencidosDescobertos || 0) + " sem processo</td>" +
+            "<td style='text-align:center; font-weight:700; color:#0284c7;'>" + (e.processos ? e.processos.length : 0) + " protocolados</td>" +
+            "<td style='font-size:10px; color:#475569;'>" + (e.vencidosDescobertos > 0 ? "Notificação imediata para abertura de processo de renovação." : "Acompanhamento do trâmite do processo no CEE-MT.") + "</td>" +
+          "</tr>";
+        }).join("");
+
+        if (!linhasCriticas) {
+          linhasCriticas = "<tr><td colspan='5' style='text-align:center; color:#15803d; font-weight:700; padding:12px;'>Nenhuma unidade em situação crítica no período.</td></tr>";
+        }
+
+        secao3Conteudo = "<h2>3. Unidades em Situação de Atenção e Ações de Fiscalização</h2>" +
+          "<table>" +
+            "<thead><tr><th>Unidade Escolar</th><th style='text-align:center;'>Nível de Risco</th><th style='text-align:center;'>Cursos Descobertos</th><th style='text-align:center;'>Processos SIPE</th><th>Encaminhamento Fiscalizatório</th></tr></thead>" +
+            "<tbody>" + linhasCriticas + "</tbody>" +
+          "</table>";
+      } else {
+        var linhasCursos = atosTrabalho.map(function(c) {
+          var badgeCor = "#dcfce7; color:#15803d";
+          var badgeTexto = "VIGENTE";
+          if (c.category === "VENCIDO_DESCOBERTO") { badgeCor = "#fee2e2; color:#b91c1c"; badgeTexto = "VENCIDO DESCOBERTO"; }
+          else if (c.category === "VENCIDO_COBERTO") { badgeCor = "#fef3c7; color:#b45309"; badgeTexto = "VENCIDO (C/ PROCESSO)"; }
+          else if (c.category === "A_VENCER") { badgeCor = "#e0f2fe; color:#0369a1"; badgeTexto = "PRÓXIMO VENCIMENTO"; }
+
+          return "<tr>" +
+            "<td style='font-weight:700;'>" + c.curso + "</td>" +
+            "<td>" + (c.doc || c.ato || "-") + "</td>" +
+            "<td style='text-align:center; font-weight:600;'>" + (c.validade || "-") + "</td>" +
+            "<td style='text-align:center;'><span style='background:" + badgeCor + "; padding:2px 6px; border-radius:4px; font-weight:700; font-size:9px;'>" + badgeTexto + "</span></td>" +
+            "<td style='font-size:10px;'>" + (c.matchedProcess ? "Processo SIPE: " + (c.matchedProcess.processo || c.matchedProcess.num || "Identificado") : "Sem processo vinculado") + "</td>" +
+          "</tr>";
+        }).join("");
+
+        if (!linhasCursos) {
+          linhasCursos = "<tr><td colspan='5' style='text-align:center; padding:12px;'>Nenhum curso registrado para esta unidade.</td></tr>";
+        }
+
+        secao3Conteudo = "<h2>3. Relação Nominal dos Cursos Técnicos da Unidade</h2>" +
+          "<table>" +
+            "<thead><tr><th>Curso Técnico</th><th>Ato Regulatório</th><th style='text-align:center;'>Validade</th><th style='text-align:center;'>Status</th><th>Processo SIPE/CEE</th></tr></thead>" +
+            "<tbody>" + linhasCursos + "</tbody>" +
+          "</table>";
+      }
+
+      var relatorioHtml = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'>" +
+        "<title>Relatório Executivo Oficial — SIPE Flow MT</title>" +
+        "<style>" +
+          "@page { size: A4; margin: 12mm 14mm 12mm 14mm; }" +
+          "body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; font-size: 11px; line-height: 1.45; }" +
+          ".header-box { border-bottom: 2px solid #0284c7; padding-bottom: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; }" +
+          ".inst-title { font-size: 15px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; }" +
+          ".inst-sub { font-size: 11px; font-weight: 700; color: #0284c7; margin: 2px 0 0 0; }" +
+          ".badge-periodo { background: #0f172a; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 11px; white-space: nowrap; }" +
+          ".kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }" +
+          ".kpi-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; background: #f8fafc; text-align: center; }" +
+          ".kpi-val { font-size: 19px; font-weight: 800; margin-bottom: 2px; }" +
+          ".kpi-lbl { font-size: 9.5px; font-weight: 700; color: #64748b; text-transform: uppercase; }" +
+          "h2 { font-size: 11.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-left: 3px solid #0284c7; padding-left: 6px; margin: 14px 0 6px 0; }" +
+          "table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }" +
+          "th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 5px 7px; border: 1px solid #cbd5e1; }" +
+          "td { padding: 5px 7px; border: 1px solid #e2e8f0; }" +
+          ".box-recom { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 12px; margin-top: 8px; }" +
+          ".box-recom li { margin-bottom: 3px; }" +
+          ".signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; page-break-inside: avoid; text-align: center; }" +
+          ".sig-line { border-top: 1px solid #64748b; padding-top: 5px; font-size: 9.5px; font-weight: 700; }" +
+          "@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }" +
+        "</style></head><body>" +
 
         "<div class='header-box'>" +
           "<div>" +
             "<h1 class='inst-title'>Governo de Mato Grosso · SECITECI / SEDUC</h1>" +
-            "<div class='inst-sub'>Sala de Situação SIPE Flow — Monitoramento Regulatório das 17 ETECs</div>" +
-            "<div style='font-size:10px; color:#64748b; margin-top:3px;'>Emissão: " + dataHoje + " · Base Integrada CEE-MT / SIGEDUCA / SIPE</div>" +
+            "<div class='inst-sub'>" + tituloEscopo + "</div>" +
+            "<div style='font-size:9.5px; color:#64748b; margin-top:2px;'>" + subTituloEscopo + " · Emissão: " + dataHoje + "</div>" +
           "</div>" +
           "<div class='badge-periodo'>" + periodoRef + "</div>" +
         "</div>" +
 
-        "<h2>1. Resumo Executivo da Rede Estadual</h2>" +
+        "<h2>1. Resumo Executivo</h2>" +
         "<div class='kpi-grid'>" +
-          "<div class='kpi-card'><div class='kpi-val' style='color:#0f172a;'>" + totalAtos + "</div><div class='kpi-lbl'>Total de Cursos Técnicos</div></div>" +
-          "<div class='kpi-card'><div class='kpi-val' style='color:#16a34a;'>" + taxaConformidade + "%</div><div class='kpi-lbl'>Índice de Conformidade</div></div>" +
-          "<div class='kpi-card'><div class='kpi-val' style='color:#dc2626;'>" + vencidos + "</div><div class='kpi-lbl'>Cursos Vencidos</div></div>" +
+          "<div class='kpi-card'><div class='kpi-val' style='color:#0f172a;'>" + totalAtos + "</div><div class='kpi-lbl'>Total de Cursos</div></div>" +
+          "<div class='kpi-card'><div class='kpi-val' style='color:#16a34a;'>" + taxaConformidade + "%</div><div class='kpi-lbl'>Índice de Regularidade</div></div>" +
+          "<div class='kpi-card'><div class='kpi-val' style='color:#dc2626;'>" + totalVencidos + "</div><div class='kpi-lbl'>Cursos Vencidos</div></div>" +
           "<div class='kpi-card'><div class='kpi-val' style='color:#0284c7;'>" + totalProcessos + "</div><div class='kpi-lbl'>Processos no SIPE / CEE</div></div>" +
         "</div>" +
-        "<p style='margin:0 0 10px 0; color:#334155; font-size:11px;'>" +
-          "O presente relatório consolida o diagnóstico regulatório e operacional da rede de Educação Profissional e Tecnológica de Mato Grosso. " +
-          "Atualmente, <strong>" + vigentes + " cursos (" + taxaConformidade + "%)</strong> operam com respaldo pleno de atos vigentes do CEE-MT. " +
-          "As unidades contam com acompanhamento contínuo da Coordenadoria, totalizando <strong>" + totalProcessos + " processos</strong> em tramitação ou deferidos no sistema oficial." +
+        "<p style='margin:0 0 8px 0; color:#334155; font-size:10.5px;'>" +
+          "Diagnóstico consolidado com extração automatizada SIGEDUCA e SIPE/CEE-MT. Do total analisado, <strong>" + vigentes + " cursos</strong> operam plenamente regulares, <strong>" + aVencer + " cursos</strong> estão na janela de 180 dias de renovação e <strong>" + totalVencidos + " cursos</strong> demandam atenção regulatória prioritária (sendo " + vencidosDescobertos + " sem processo de renovação protocolado)." +
         "</p>" +
 
         "<h2>2. Situação Regulatória dos Cursos</h2>" +
@@ -4053,42 +4126,31 @@ function exportFilteredCsv() {
           "<thead><tr><th>Status Operacional</th><th style='text-align:center;'>Qtd. Atos</th><th style='text-align:center;'>Proporção</th><th>Ação Regulatória Governamental</th></tr></thead>" +
           "<tbody>" +
             "<tr><td><strong>Atos Válidos e Vigentes</strong></td><td style='text-align:center; font-weight:700; color:#16a34a;'>" + vigentes + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((vigentes/totalAtos)*100) : 0) + "%</td><td>Cursos operando em conformidade legal. Manter acompanhamento ordinário.</td></tr>" +
-            "<tr><td><strong>Atos Vencidos (Pendente de Regularização)</strong></td><td style='text-align:center; font-weight:700; color:#dc2626;'>" + vencidos + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((vencidos/totalAtos)*100) : 0) + "%</td><td>Prioridade zero: exigência de protocolo tempestivo de renovação no CEE-MT.</td></tr>" +
-            "<tr><td><strong>Atos Próximos do Vencimento (&le; 180 dias)</strong></td><td style='text-align:center; font-weight:700; color:#d97706;'>" + criticos + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((criticos/totalAtos)*100) : 0) + "%</td><td>Janela regulatória para instrução processual de renovação sem descontinuidade.</td></tr>" +
+            "<tr><td><strong>Atos Vencidos (Pendente de Regularização)</strong></td><td style='text-align:center; font-weight:700; color:#dc2626;'>" + totalVencidos + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((totalVencidos/totalAtos)*100) : 0) + "%</td><td>Prioridade: protocolo urgente de renovação ou encerramento no CEE-MT.</td></tr>" +
+            "<tr><td><strong>Atos Próximos do Vencimento (&le; 180 dias)</strong></td><td style='text-align:center; font-weight:700; color:#0284c7;'>" + aVencer + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((aVencer/totalAtos)*100) : 0) + "%</td><td>Janela regulatória para instrução tempestiva dos autos de renovação.</td></tr>" +
           "</tbody>" +
         "</table>" +
 
-        "<h2>3. Unidades em Situação de Atenção e Ações de Fiscalização</h2>" +
-        "<p style='margin:0 0 6px 0; color:#64748b; font-size:10px;'>Priorização estabelecida pela Matriz de Risco Regulatório do SIPE Flow:</p>" +
-        "<table>" +
-          "<thead><tr><th>Unidade Escolar (ETEC)</th><th style='text-align:center;'>Nível de Criticidade</th><th style='text-align:center;'>Cursos Descobertos</th><th style='text-align:center;'>Processos SIPE</th><th>Encaminhamento Fiscalizatório</th></tr></thead>" +
-          "<tbody>" + linhasTabelaCriticas + "</tbody>" +
-        "</table>" +
+        secao3Conteudo +
 
         "<h2>4. Atividades e Monitoramento da Coordenadoria</h2>" +
-        "<div style='display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;'>" +
-          "<div style='border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; background:#f8fafc;'>" +
+        "<div style='display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;'>" +
+          "<div style='border:1px solid #cbd5e1; border-radius:6px; padding:6px 8px; background:#f8fafc; font-size:10px;'>" +
             "<strong>✓ Notificações Institucionais Automatizadas:</strong><br>" +
-            "<span style='color:#475569;'>Disparo de alertas em tempo real integrados aos canais Google Chat das 17 unidades escolares e envio de notificações formais por e-mail institucional.</span>" +
+            "<span style='color:#475569;'>Alertas contínuos integrados ao Google Chat e notificações formais enviadas aos e-mails corporativos dos diretores e secretários escolares.</span>" +
           "</div>" +
-          "<div style='border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; background:#f8fafc;'>" +
+          "<div style='border:1px solid #cbd5e1; border-radius:6px; padding:6px 8px; background:#f8fafc; font-size:10px;'>" +
             "<strong>✓ Dossiês e Diligências Online:</strong><br>" +
-            "<span style='color:#475569;'>Acompanhamento individualizado de cada processo no CEE-MT, com histórico de fiscalização e registro de despachos técnicos.</span>" +
+            "<span style='color:#475569;'>Acompanhamento de cada processo no CEE-MT, com histórico de fiscalização, despachos técnicos e apoio à elaboração de requerimentos padronizados.</span>" +
           "</div>" +
         "</div>" +
 
-        "<h2>5. Evolução dos Indicadores de Desempenho</h2>" +
-        "<p style='margin:0 0 8px 0; color:#334155;'>" +
-          "Comparativamente aos ciclos anteriores, a automação com o robô de extração SIPE/SIGEDUCA garantiu <strong>100% de precisão cadastral</strong>, eliminando o atraso na detecção de vencimentos. " +
-          "Das 17 ETECs, <strong>" + etecsRegulares.length + " unidades</strong> encontram-se em faixa verde (regularidade plena), <strong>" + etecsAtencao.length + "</strong> em atenção e <strong>" + etecsCriticas.length + "</strong> sob plano intensivo de regularização." +
-        "</p>" +
-
-        "<h2>6. Recomendações Gerenciais Estratégicas</h2>" +
+        "<h2>5. Recomendações Gerenciais Estratégicas</h2>" +
         "<div class='box-recom'>" +
-          "<ul style='margin:0; padding-left:16px; color:#166534; font-weight:600;'>" +
-            "<li><strong>Emissão de Notificação Sumária:</strong> Notificar formalmente os diretores das unidades com cursos vencidos para apresentação do protocolo SIPE em até 10 dias úteis.</li>" +
-            "<li><strong>Agenda Prioritária junto ao CEE-MT:</strong> Pautar na Câmara de Educação Profissional os processos já instruídos que aguardam emissão de parecer.</li>" +
-            "<li><strong>Antecipação dos Atos com Vencimento em 180 dias:</strong> Iniciar imediatamente os autos dos cursos com validade até o próximo semestre letivo.</li>" +
+          "<ul style='margin:0; padding-left:16px; color:#166534; font-weight:600; font-size:10px;'>" +
+            "<li><strong>Regularização Imediata:</strong> Notificar direções das unidades para abertura de processos dos cursos sem protocolo SIPE ativo.</li>" +
+            "<li><strong>Acompanhamento no CEE-MT:</strong> Pautar processos já instruídos na Câmara de Educação Profissional do Conselho Estadual.</li>" +
+            "<li><strong>Antecipação Semestral:</strong> Iniciar imediatamente a instrução dos cursos com validade inferior a 180 dias.</li>" +
           "</ul>" +
         "</div>" +
 
@@ -4102,6 +4164,10 @@ function exportFilteredCsv() {
       var janelaImpressao = window.open("", "_blank");
       janelaImpressao.document.write(relatorioHtml);
       janelaImpressao.document.close();
+      janelaImpressao.focus();
+      setTimeout(function() {
+        janelaImpressao.print();
+      }, 500);
     }
   </script>
 </body>
