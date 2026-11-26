@@ -3982,7 +3982,7 @@ function exportFilteredCsv() {
       }
     }
 
-    // 📄 COMPILADOR ANALÍTICO DO RELATÓRIO EXECUTIVO (A4 LIMPO E VETORIAL)
+// 📄 COMPILADOR ANALÍTICO DO RELATÓRIO EXECUTIVO (A4 ALINHADO E COM DISPARO AUTOMÁTICO)
     function gerarRelatorioExecutivoPdf() {
       var periodoRef = document.getElementById("relatorio-periodo-texto").value.trim() || "Período Vigente";
       var escolaEscolhida = document.getElementById("relatorio-escola-select").value;
@@ -4005,7 +4005,6 @@ function exportFilteredCsv() {
         }
       }
 
-      // Correção dos status baseada em `category`
       var totalAtos = atosTrabalho.length;
       var vigentes = atosTrabalho.filter(function(a) { return a.category === "VIGENTE"; }).length;
       var aVencer = atosTrabalho.filter(function(a) { return a.category === "A_VENCER"; }).length;
@@ -4024,7 +4023,6 @@ function exportFilteredCsv() {
         subTituloEscopo = "Unidade Escolar: " + etecInfo.nomeCompleto + " · Código CEE/MT: " + etecInfo.cod;
       }
 
-      // Seção 3 Dinâmica: Críticas Gerais OU Lista de Cursos da Escola
       var secao3Conteudo = "";
       if (escolaEscolhida === "TODAS") {
         var etecsCriticas = summaries.filter(function(s) { return s.risk === "VERMELHO" || s.risk === "AMARELO"; });
@@ -4041,7 +4039,7 @@ function exportFilteredCsv() {
         }).join("");
 
         if (!linhasCriticas) {
-          linhasCriticas = "<tr><td colspan='5' style='text-align:center; color:#15803d; font-weight:700; padding:12px;'>Nenhuma unidade em situação crítica no período.</td></tr>";
+          linhasCriticas = "<tr><td colspan='5' style='text-align:center; color:#15803d; font-weight:700; padding:8px;'>Nenhuma unidade em situação crítica no período.</td></tr>";
         }
 
         secao3Conteudo = "<h2>3. Unidades em Situação de Atenção e Ações de Fiscalização</h2>" +
@@ -4067,7 +4065,7 @@ function exportFilteredCsv() {
         }).join("");
 
         if (!linhasCursos) {
-          linhasCursos = "<tr><td colspan='5' style='text-align:center; padding:12px;'>Nenhum curso registrado para esta unidade.</td></tr>";
+          linhasCursos = "<tr><td colspan='5' style='text-align:center; padding:8px;'>Nenhum curso registrado para esta unidade.</td></tr>";
         }
 
         secao3Conteudo = "<h2>3. Relação Nominal dos Cursos Técnicos da Unidade</h2>" +
@@ -4080,93 +4078,95 @@ function exportFilteredCsv() {
       var relatorioHtml = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'>" +
         "<title>Relatório Executivo Oficial — SIPE Flow MT</title>" +
         "<style>" +
-          "@page { size: A4; margin: 12mm 14mm 12mm 14mm; }" +
-          "body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; font-size: 11px; line-height: 1.45; }" +
-          ".header-box { border-bottom: 2px solid #0284c7; padding-bottom: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; }" +
-          ".inst-title { font-size: 15px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; }" +
-          ".inst-sub { font-size: 11px; font-weight: 700; color: #0284c7; margin: 2px 0 0 0; }" +
-          ".badge-periodo { background: #0f172a; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 11px; white-space: nowrap; }" +
-          ".kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }" +
-          ".kpi-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; background: #f8fafc; text-align: center; }" +
-          ".kpi-val { font-size: 19px; font-weight: 800; margin-bottom: 2px; }" +
-          ".kpi-lbl { font-size: 9.5px; font-weight: 700; color: #64748b; text-transform: uppercase; }" +
-          "h2 { font-size: 11.5px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-left: 3px solid #0284c7; padding-left: 6px; margin: 14px 0 6px 0; }" +
-          "table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }" +
-          "th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 5px 7px; border: 1px solid #cbd5e1; }" +
-          "td { padding: 5px 7px; border: 1px solid #e2e8f0; }" +
-          ".box-recom { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 12px; margin-top: 8px; }" +
-          ".box-recom li { margin-bottom: 3px; }" +
-          ".signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 30px; page-break-inside: avoid; text-align: center; }" +
-          ".sig-line { border-top: 1px solid #64748b; padding-top: 5px; font-size: 9.5px; font-weight: 700; }" +
-          "@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } }" +
+          "@page { size: A4 portrait; margin: 10mm 12mm 10mm 12mm; }" +
+          "* { box-sizing: border-box; }" +
+          "body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; font-size: 10.5px; line-height: 1.35; background: #ffffff; }" +
+          ".page-container { width: 100%; max-width: 800px; margin: 0 auto; padding-top: 0; }" +
+          ".header-box { border-bottom: 2px solid #0284c7; padding-bottom: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }" +
+          ".inst-title { font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0; }" +
+          ".inst-sub { font-size: 10.5px; font-weight: 700; color: #0284c7; margin: 2px 0 0 0; }" +
+          ".badge-periodo { background: #0f172a; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 10px; white-space: nowrap; }" +
+          ".kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }" +
+          ".kpi-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 4px; background: #f8fafc; text-align: center; }" +
+          ".kpi-val { font-size: 17px; font-weight: 800; margin-bottom: 2px; line-height: 1; }" +
+          ".kpi-lbl { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; }" +
+          "h2 { font-size: 11px; font-weight: 800; color: #0f172a; text-transform: uppercase; border-left: 3px solid #0284c7; padding-left: 6px; margin: 10px 0 5px 0; }" +
+          "table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 9.5px; }" +
+          "th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 4px 6px; border: 1px solid #cbd5e1; }" +
+          "td { padding: 4px 6px; border: 1px solid #e2e8f0; }" +
+          ".box-recom { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 6px 10px; margin-top: 6px; }" +
+          ".box-recom li { margin-bottom: 2px; }" +
+          ".signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 20px; text-align: center; }" +
+          ".sig-line { border-top: 1px solid #64748b; padding-top: 4px; font-size: 9px; font-weight: 700; }" +
+          "@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } .page-container { padding: 0 !important; margin: 0 !important; max-width: 100% !important; } }" +
         "</style></head><body>" +
 
-        "<div class='no-print' style='background:#0f172a; color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-radius:6px; font-family:sans-serif;'>" +
+        "<div class='no-print' style='background:#0f172a; color:#fff; padding:8px 16px; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-radius:6px; font-family:sans-serif;'>" +
           "<span>📄 <strong>Visualização Prévia do Relatório Executivo Oficial</strong></span>" +
           "<div>" +
-            "<button onclick='window.print()' style='background:#16a34a; color:#fff; border:none; padding:7px 15px; border-radius:4px; font-weight:700; font-size:12px; cursor:pointer; margin-right:8px;'>🖨️ Salvar como PDF / Imprimir</button>" +
-            "<button onclick='window.close()' style='background:#64748b; color:#fff; border:none; padding:7px 12px; border-radius:4px; font-weight:700; font-size:12px; cursor:pointer;'>✕ Fechar</button>" +
+            "<button onclick='window.print()' style='background:#16a34a; color:#fff; border:none; padding:6px 14px; border-radius:4px; font-weight:700; font-size:11.5px; cursor:pointer; margin-right:8px;'>🖨️ Salvar como PDF / Imprimir</button>" +
+            "<button onclick='window.close()' style='background:#64748b; color:#fff; border:none; padding:6px 10px; border-radius:4px; font-weight:700; font-size:11.5px; cursor:pointer;'>✕ Fechar</button>" +
           "</div>" +
         "</div>" +
 
-        "<div class='header-box'>" +
-
-        "<div class='header-box'>" +
-          "<div>" +
-            "<h1 class='inst-title'>Governo de Mato Grosso · SECITECI / SEDUC</h1>" +
-            "<div class='inst-sub'>" + tituloEscopo + "</div>" +
-            "<div style='font-size:9.5px; color:#64748b; margin-top:2px;'>" + subTituloEscopo + " · Emissão: " + dataHoje + "</div>" +
+        "<div class='page-container'>" +
+          "<div class='header-box'>" +
+            "<div>" +
+              "<h1 class='inst-title'>Governo de Mato Grosso · SECITECI / SEDUC</h1>" +
+              "<div class='inst-sub'>" + tituloEscopo + "</div>" +
+              "<div style='font-size:9px; color:#64748b; margin-top:2px;'>" + subTituloEscopo + " · Emissão: " + dataHoje + "</div>" +
+            "</div>" +
+            "<div class='badge-periodo'>" + periodoRef + "</div>" +
           "</div>" +
-          "<div class='badge-periodo'>" + periodoRef + "</div>" +
-        "</div>" +
 
-        "<h2>1. Resumo Executivo</h2>" +
-        "<div class='kpi-grid'>" +
-          "<div class='kpi-card'><div class='kpi-val' style='color:#0f172a;'>" + totalAtos + "</div><div class='kpi-lbl'>Total de Cursos</div></div>" +
-          "<div class='kpi-card'><div class='kpi-val' style='color:#16a34a;'>" + taxaConformidade + "%</div><div class='kpi-lbl'>Índice de Regularidade</div></div>" +
-          "<div class='kpi-card'><div class='kpi-val' style='color:#dc2626;'>" + totalVencidos + "</div><div class='kpi-lbl'>Cursos Vencidos</div></div>" +
-          "<div class='kpi-card'><div class='kpi-val' style='color:#0284c7;'>" + totalProcessos + "</div><div class='kpi-lbl'>Processos no SIPE / CEE</div></div>" +
-        "</div>" +
-        "<p style='margin:0 0 8px 0; color:#334155; font-size:10.5px;'>" +
-          "Diagnóstico consolidado com extração automatizada SIGEDUCA e SIPE/CEE-MT. Do total analisado, <strong>" + vigentes + " cursos</strong> operam plenamente regulares, <strong>" + aVencer + " cursos</strong> estão na janela de 180 dias de renovação e <strong>" + totalVencidos + " cursos</strong> demandam atenção regulatória prioritária (sendo " + vencidosDescobertos + " sem processo de renovação protocolado)." +
-        "</p>" +
-
-        "<h2>2. Situação Regulatória dos Cursos</h2>" +
-        "<table>" +
-          "<thead><tr><th>Status Operacional</th><th style='text-align:center;'>Qtd. Atos</th><th style='text-align:center;'>Proporção</th><th>Ação Regulatória Governamental</th></tr></thead>" +
-          "<tbody>" +
-            "<tr><td><strong>Atos Válidos e Vigentes</strong></td><td style='text-align:center; font-weight:700; color:#16a34a;'>" + vigentes + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((vigentes/totalAtos)*100) : 0) + "%</td><td>Cursos operando em conformidade legal. Manter acompanhamento ordinário.</td></tr>" +
-            "<tr><td><strong>Atos Vencidos (Pendente de Regularização)</strong></td><td style='text-align:center; font-weight:700; color:#dc2626;'>" + totalVencidos + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((totalVencidos/totalAtos)*100) : 0) + "%</td><td>Prioridade: protocolo urgente de renovação ou encerramento no CEE-MT.</td></tr>" +
-            "<tr><td><strong>Atos Próximos do Vencimento (&le; 180 dias)</strong></td><td style='text-align:center; font-weight:700; color:#0284c7;'>" + aVencer + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((aVencer/totalAtos)*100) : 0) + "%</td><td>Janela regulatória para instrução tempestiva dos autos de renovação.</td></tr>" +
-          "</tbody>" +
-        "</table>" +
-
-        secao3Conteudo +
-
-        "<h2>4. Atividades e Monitoramento da Coordenadoria</h2>" +
-        "<div style='display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;'>" +
-          "<div style='border:1px solid #cbd5e1; border-radius:6px; padding:6px 8px; background:#f8fafc; font-size:10px;'>" +
-            "<strong>✓ Notificações Institucionais Automatizadas:</strong><br>" +
-            "<span style='color:#475569;'>Alertas contínuos integrados ao Google Chat e notificações formais enviadas aos e-mails corporativos dos diretores e secretários escolares.</span>" +
+          "<h2>1. Resumo Executivo</h2>" +
+          "<div class='kpi-grid'>" +
+            "<div class='kpi-card'><div class='kpi-val' style='color:#0f172a;'>" + totalAtos + "</div><div class='kpi-lbl'>Total de Cursos</div></div>" +
+            "<div class='kpi-card'><div class='kpi-val' style='color:#16a34a;'>" + taxaConformidade + "%</div><div class='kpi-lbl'>Índice de Regularidade</div></div>" +
+            "<div class='kpi-card'><div class='kpi-val' style='color:#dc2626;'>" + totalVencidos + "</div><div class='kpi-lbl'>Cursos Vencidos</div></div>" +
+            "<div class='kpi-card'><div class='kpi-val' style='color:#0284c7;'>" + totalProcessos + "</div><div class='kpi-lbl'>Processos no SIPE / CEE</div></div>" +
           "</div>" +
-          "<div style='border:1px solid #cbd5e1; border-radius:6px; padding:6px 8px; background:#f8fafc; font-size:10px;'>" +
-            "<strong>✓ Dossiês e Diligências Online:</strong><br>" +
-            "<span style='color:#475569;'>Acompanhamento de cada processo no CEE-MT, com histórico de fiscalização, despachos técnicos e apoio à elaboração de requerimentos padronizados.</span>" +
+          "<p style='margin:0 0 6px 0; color:#334155; font-size:10px;'>" +
+            "Diagnóstico consolidado com extração automatizada SIGEDUCA e SIPE/CEE-MT. Do total analisado, <strong>" + vigentes + " cursos</strong> operam plenamente regulares, <strong>" + aVencer + " cursos</strong> estão na janela de 180 dias de renovação e <strong>" + totalVencidos + " cursos</strong> demandam atenção regulatória prioritária (sendo " + vencidosDescobertos + " sem processo de renovação protocolado)." +
+          "</p>" +
+
+          "<h2>2. Situação Regulatória dos Cursos</h2>" +
+          "<table>" +
+            "<thead><tr><th>Status Operacional</th><th style='text-align:center;'>Qtd. Atos</th><th style='text-align:center;'>Proporção</th><th>Ação Regulatória Governamental</th></tr></thead>" +
+            "<tbody>" +
+              "<tr><td><strong>Atos Válidos e Vigentes</strong></td><td style='text-align:center; font-weight:700; color:#16a34a;'>" + vigentes + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((vigentes/totalAtos)*100) : 0) + "%</td><td>Cursos operando em conformidade legal. Manter acompanhamento ordinário.</td></tr>" +
+              "<tr><td><strong>Atos Vencidos (Pendente de Regularização)</strong></td><td style='text-align:center; font-weight:700; color:#dc2626;'>" + totalVencidos + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((totalVencidos/totalAtos)*100) : 0) + "%</td><td>Prioridade: protocolo urgente de renovação ou encerramento no CEE-MT.</td></tr>" +
+              "<tr><td><strong>Atos Próximos do Vencimento (&le; 180 dias)</strong></td><td style='text-align:center; font-weight:700; color:#0284c7;'>" + aVencer + "</td><td style='text-align:center;'>" + (totalAtos ? Math.round((aVencer/totalAtos)*100) : 0) + "%</td><td>Janela regulatória para instrução tempestiva dos autos de renovação.</td></tr>" +
+            "</tbody>" +
+          "</table>" +
+
+          secao3Conteudo +
+
+          "<h2>4. Atividades e Monitoramento da Coordenadoria</h2>" +
+          "<div style='display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:6px;'>" +
+            "<div style='border:1px solid #cbd5e1; border-radius:6px; padding:5px 8px; background:#f8fafc; font-size:9.5px;'>" +
+              "<strong>✓ Notificações Institucionais Automatizadas:</strong><br>" +
+              "<span style='color:#475569;'>Alertas contínuos integrados ao Google Chat e notificações formais enviadas aos e-mails corporativos dos diretores e secretários escolares.</span>" +
+            "</div>" +
+            "<div style='border:1px solid #cbd5e1; border-radius:6px; padding:5px 8px; background:#f8fafc; font-size:9.5px;'>" +
+              "<strong>✓ Dossiês e Diligências Online:</strong><br>" +
+              "<span style='color:#475569;'>Acompanhamento de cada processo no CEE-MT, com histórico de fiscalização, despachos técnicos e apoio à elaboração de requerimentos padronizados.</span>" +
+            "</div>" +
           "</div>" +
-        "</div>" +
 
-        "<h2>5. Recomendações Gerenciais Estratégicas</h2>" +
-        "<div class='box-recom'>" +
-          "<ul style='margin:0; padding-left:16px; color:#166534; font-weight:600; font-size:10px;'>" +
-            "<li><strong>Regularização Imediata:</strong> Notificar direções das unidades para abertura de processos dos cursos sem protocolo SIPE ativo.</li>" +
-            "<li><strong>Acompanhamento no CEE-MT:</strong> Pautar processos já instruídos na Câmara de Educação Profissional do Conselho Estadual.</li>" +
-            "<li><strong>Antecipação Semestral:</strong> Iniciar imediatamente a instrução dos cursos com validade inferior a 180 dias.</li>" +
-          "</ul>" +
-        "</div>" +
+          "<h2>5. Recomendações Gerenciais Estratégicas</h2>" +
+          "<div class='box-recom'>" +
+            "<ul style='margin:0; padding-left:14px; color:#166534; font-weight:600; font-size:9.5px;'>" +
+              "<li><strong>Regularização Imediata:</strong> Notificar direções das unidades para abertura de processos dos cursos sem protocolo SIPE ativo.</li>" +
+              "<li><strong>Acompanhamento no CEE-MT:</strong> Pautar processos já instruídos na Câmara de Educação Profissional do Conselho Estadual.</li>" +
+              "<li><strong>Antecipação Semestral:</strong> Iniciar imediatamente a instrução dos cursos com validade inferior a 180 dias.</li>" +
+            "</ul>" +
+          "</div>" +
 
-        "<div class='signature-row'>" +
-          "<div><div class='sig-line'>Coordenadoria de Educação Profissional e Tecnológica<br><span style='color:#64748b;'>SECITECI-MT</span></div></div>" +
-          "<div><div class='sig-line'>Secretaria Adjunta de Educação Científica e Tecnológica<br><span style='color:#64748b;'>Visto da Gestão Superior</span></div></div>" +
+          "<div class='signature-row'>" +
+            "<div><div class='sig-line'>Coordenadoria de Educação Profissional e Tecnológica<br><span style='color:#64748b;'>SECITECI-MT</span></div></div>" +
+            "<div><div class='sig-line'>Secretaria Adjunta de Educação Científica e Tecnológica<br><span style='color:#64748b;'>Visto da Gestão Superior</span></div></div>" +
+          "</div>" +
         "</div>" +
 
         "</body></html>";
@@ -4175,6 +4175,9 @@ function exportFilteredCsv() {
       janelaImpressao.document.write(relatorioHtml);
       janelaImpressao.document.close();
       janelaImpressao.focus();
+      setTimeout(function() {
+        janelaImpressao.print();
+      }, 400);
     }
   </script>
 </body>
