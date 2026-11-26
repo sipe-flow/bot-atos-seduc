@@ -3966,6 +3966,109 @@ function exportFilteredCsv() {
     </div>
   </div>
 
+   <!-- MODAL BUSCA INTELIGENTE EM LINGUAGEM NATURAL (EXCLUSIVO ADMIN) -->
+  <div id="modal-busca-inteligente" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); z-index:99999; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#ffffff; border-radius:12px; width:100%; max-width:850px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35); border:1px solid #e2e8f0; overflow:hidden;">
+      
+      <!-- Cabeçalho do Modal -->
+      <div style="background:linear-gradient(135deg, #1e1b4b, #581c87); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; color:#ffffff;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="background:rgba(255,255,255,0.15); border-radius:8px; width:34px; height:34px; display:flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2.5" style="width:18px;height:18px;">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:16px; font-weight:700; letter-spacing:-0.02em;">SIPE Flow Intelligence · Consulta em Linguagem Natural</h3>
+            <p style="margin:0; font-size:11px; color:#cbd5e1;">Pesquise atos, processos, vencimentos e riscos das 17 ETECs</p>
+          </div>
+        </div>
+        <button type="button" onclick="fecharModalBuscaInteligente()" style="background:transparent; border:none; color:#cbd5e1; cursor:pointer; font-size:22px; line-height:1; padding:4px;" title="Fechar (Esc)">&times;</button>
+      </div>
+
+      <!-- Corpo da Busca -->
+      <div style="padding:16px 20px; overflow-y:auto; flex:1;">
+        
+        <!-- Campo de Entrada -->
+        <div style="position:relative; margin-bottom:12px;">
+          <input type="text" id="input-busca-ia" placeholder="Ex: Quais cursos de enfermagem vencem nos próximos 12 meses?" 
+                 style="width:100%; padding:12px 44px 12px 14px; border-radius:8px; border:2px solid #a855f7; font-size:14px; outline:none; box-sizing:border-box; font-family:inherit;"
+                 onkeydown="if(event.key === 'Enter') executarBuscaInteligente()">
+          <button type="button" onclick="executarBuscaInteligente()" 
+                  style="position:absolute; right:8px; top:8px; background:#7c3aed; color:#fff; border:none; border-radius:6px; padding:6px 12px; font-weight:700; font-size:12px; cursor:pointer;">
+            Buscar
+          </button>
+        </div>
+
+        <!-- Exemplos de Perguntas Rápidas (Chips) -->
+        <div style="margin-bottom:16px;">
+          <span style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.04em;">Sugestões de consulta:</span>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+            <button type="button" class="btn-chip" onclick="aplicarExemploBusca('Quais cursos de enfermagem vencem nos próximos 12 meses?')">Cursos de Enfermagem a vencer em 1 ano</button>
+            <button type="button" class="btn-chip" onclick="aplicarExemploBusca('Quais unidades de Cuiabá possuem cursos vencidos?')">Cursos vencidos em Cuiabá</button>
+            <button type="button" class="btn-chip" onclick="aplicarExemploBusca('Quais cursos vencidos estão sem processo no SIPE?')">Passivo descoberto (sem processo SIPE)</button>
+            <button type="button" class="btn-chip" onclick="aplicarExemploBusca('Instituições de Rondonópolis com cursos vigentes')">Cursos vigentes em Rondonópolis</button>
+          </div>
+        </div>
+
+        <!-- Área de Resultados -->
+        <div id="resultado-busca-ia" style="display:none; border-top:1px solid #e2e8f0; padding-top:14px;">
+          <div id="resumo-ia-texto" style="background:#f8fafc; border-left:4px solid #7c3aed; padding:10px 14px; border-radius:4px; font-size:13px; color:#1e293b; margin-bottom:12px;"></div>
+          
+          <!-- Tabela de Registros Encontrados -->
+          <div style="overflow-x:auto; max-height:260px; border:1px solid #e2e8f0; border-radius:6px;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+              <thead style="background:#f1f5f9; position:sticky; top:0; z-index:1;">
+                <tr>
+                  <th style="padding:8px 10px; border-bottom:1px solid #cbd5e1;">Unidade / Cidade</th>
+                  <th style="padding:8px 10px; border-bottom:1px solid #cbd5e1;">Curso Técnico</th>
+                  <th style="padding:8px 10px; border-bottom:1px solid #cbd5e1;">Validade</th>
+                  <th style="padding:8px 10px; border-bottom:1px solid #cbd5e1; text-align:center;">Situação</th>
+                  <th style="padding:8px 10px; border-bottom:1px solid #cbd5e1;">Processo SIPE</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-resultado-ia"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Rodapé com Ações -->
+      <div style="background:#f8fafc; border-top:1px solid #e2e8f0; padding:10px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; color:#64748b;">Dica: pressione <strong>Ctrl + K</strong> a qualquer momento para abrir esta busca.</span>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="btn-exportar-busca-ia" onclick="exportarResultadoBuscaIa()" style="display:none; background:#0284c7; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">
+            Exportar CSV
+          </button>
+          <button type="button" onclick="fecharModalBuscaInteligente()" style="background:#e2e8f0; color:#334155; border:none; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">
+            Fechar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    .btn-chip {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 9999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-chip:hover {
+      background: #ede9fe;
+      border-color: #a855f7;
+      color: #6b21a8;
+    }
+  </style>
+
   <script>
     // 🔒 LIBERAÇÃO DOS BOTÕES APENAS PARA ADMINISTRADORES
     function verificarAcessoAdminRelatorio() {
@@ -4007,7 +4110,7 @@ function exportFilteredCsv() {
       if (modal) modal.style.display = "flex";
     }
 
-    function fecharModalRelatorioExecutivo() {
+ function fecharModalRelatorioExecutivo() {
       var modal = document.getElementById("modal-relatorio-executivo");
       if (modal) modal.style.display = "none";
     }
@@ -4027,6 +4130,194 @@ function exportFilteredCsv() {
       } else {
         txt.value = "Exercício Anual " + ano;
       }
+    }
+
+    // =========================================================================
+    // MOTOR DE INTELIGÊNCIA EM LINGUAGEM NATURAL - SIPE FLOW (CTRL + K)
+    // =========================================================================
+    var ultimosResultadosIa = [];
+
+    function abrirModalBuscaInteligente() {
+      var modal = document.getElementById("modal-busca-inteligente");
+      if (modal) {
+        modal.style.display = "flex";
+        setTimeout(function() {
+          var inp = document.getElementById("input-busca-ia");
+          if (inp) {
+            inp.focus();
+            inp.select();
+          }
+        }, 100);
+      }
+    }
+
+    function fecharModalBuscaInteligente() {
+      var modal = document.getElementById("modal-busca-inteligente");
+      if (modal) modal.style.display = "none";
+    }
+
+    // Atalho global de teclado Ctrl + K (ou Cmd + K no Mac) e tecla Esc
+    document.addEventListener("keydown", function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get("role") === "admin" || params.get("admin") === "true") {
+          e.preventDefault();
+          abrirModalBuscaInteligente();
+        }
+      }
+      if (e.key === "Escape") {
+        fecharModalBuscaInteligente();
+      }
+    });
+
+    function aplicarExemploBusca(texto) {
+      var inp = document.getElementById("input-busca-ia");
+      if (inp) {
+        inp.value = texto;
+        executarBuscaInteligente();
+      }
+    }
+
+    function executarBuscaInteligente() {
+      var inputEl = document.getElementById("input-busca-ia");
+      if (!inputEl) return;
+      var query = inputEl.value.trim();
+      if (!query) return;
+
+      var qNorm = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+      // Utiliza a base auditada atual (com a trava dos 381 cursos)
+      var atosTrabalho = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
+
+      // 1. Identificação de Intenção Temporal e Situação
+      var querVencidos = qNorm.includes("VENCID") || qNorm.includes("EXPIRAD") || qNorm.includes("PASSIV");
+      var querVigentes = qNorm.includes("VIGENT") || qNorm.includes("REGULAR");
+      var querAVencer = qNorm.includes("A VENCER") || qNorm.includes("PROXIM") || qNorm.includes("12 MESES") || qNorm.includes("1 ANO") || qNorm.includes("180 DIAS");
+      var querSemProcesso = qNorm.includes("SEM PROCESSO") || qNorm.includes("DESCOBERT") || qNorm.includes("SEM PROTOCOLO") || qNorm.includes("NAO FORAM FISCALIZAD");
+      var querComProcesso = qNorm.includes("COM PROCESSO") || qNorm.includes("COBERT") || qNorm.includes("EM REGULARIZACAO");
+
+      // 2. Identificação de Cidade / Município ETEC
+      var cidadeFiltro = "";
+      if (typeof ETECS_MASTER !== "undefined") {
+        for (var i = 0; i < ETECS_MASTER.length; i++) {
+          var cidNorm = ETECS_MASTER[i].cidade.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+          if (qNorm.includes(cidNorm)) {
+            cidadeFiltro = cidNorm;
+            break;
+          }
+        }
+      }
+
+      // 3. Identificação de Cursos Específicos
+      var cursosComuns = ["ENFERMAGEM", "AGROPECUARIA", "SEGURANCA DO TRABALHO", "ADMINISTRACAO", "LOGISTICA", "INFORMATICA", "DESENVOLVIMENTO DE SISTEMAS", "EDIFICACOES", "RECURSOS HUMANOS", "ELETROTECNICA", "AGRICULTURA", "AGRONEGOCIO"];
+      var cursoFiltro = "";
+      for (var c = 0; c < cursosComuns.length; c++) {
+        if (qNorm.includes(cursosComuns[c])) {
+          cursoFiltro = cursosComuns[c];
+          break;
+        }
+      }
+
+      // 4. Filtragem Cruzada Inteligente
+      var filtrados = atosTrabalho.filter(function(item) {
+        var munItem = (item.municipio || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        var escItem = (item.escola || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        var curItem = (item.curso || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+        if (cidadeFiltro && !munItem.includes(cidadeFiltro) && !escItem.includes(cidadeFiltro)) {
+          return false;
+        }
+        if (cursoFiltro && !curItem.includes(cursoFiltro)) {
+          return false;
+        }
+        if (querVencidos && item.category !== "VENCIDO_DESCOBERTO" && item.category !== "VENCIDO_COBERTO") {
+          return false;
+        }
+        if (querVigentes && item.category !== "VIGENTE") {
+          return false;
+        }
+        if (querAVencer && item.category !== "A_VENCER" && (item.daysRemaining === null || item.daysRemaining > 365 || item.daysRemaining < 0)) {
+          return false;
+        }
+        if (querSemProcesso && item.matchedProcess !== null) {
+          return false;
+        }
+        if (querComProcesso && item.matchedProcess === null) {
+          return false;
+        }
+        return true;
+      });
+
+      ultimosResultadosIa = filtrados;
+
+      // 5. Exibição do Diagnóstico e Resumo
+      var divResultado = document.getElementById("resultado-busca-ia");
+      var resumoEl = document.getElementById("resumo-ia-texto");
+      var tbody = document.getElementById("tbody-resultado-ia");
+      var btnExportar = document.getElementById("btn-exportar-busca-ia");
+
+      if (divResultado) divResultado.style.display = "block";
+      if (btnExportar) btnExportar.style.display = filtrados.length > 0 ? "inline-block" : "none";
+
+      var textoResumo = "🔍 <strong>Diagnóstico da Consulta:</strong> Foram localizados <strong>" + filtrados.length + " curso(s)</strong> para os critérios informados.";
+      if (cidadeFiltro) textoResumo += " Município: <strong>" + cidadeFiltro + "</strong>.";
+      if (cursoFiltro) textoResumo += " Curso: <strong>TÉCNICO EM " + cursoFiltro + "</strong>.";
+      if (querVencidos) textoResumo += " Status: <strong>Atos Vencidos</strong>.";
+      if (querAVencer) textoResumo += " Status: <strong>A Vencer (Monitorar Prazo)</strong>.";
+      if (querSemProcesso) textoResumo += " SIPE: <span style='color:#dc2626; font-weight:700;'>Sem processo autuado (Passivo Descoberto)</span>.";
+
+      if (resumoEl) resumoEl.innerHTML = textoResumo;
+
+      // 6. Preenchimento da Tabela
+      if (tbody) {
+        if (filtrados.length === 0) {
+          tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:16px; color:#64748b;'>Nenhum registro encontrado para essa consulta. Tente reformular a pergunta ou clique em um dos exemplos rápidos acima.</td></tr>";
+        } else {
+          tbody.innerHTML = filtrados.map(function(item) {
+            var badgeCor = "#dcfce7; color:#15803d";
+            var badgeTxt = "VIGENTE";
+            if (item.category === "VENCIDO_DESCOBERTO" || item.category === "VENCIDO_COBERTO") {
+              badgeCor = "#fee2e2; color:#b91c1c";
+              badgeTxt = "VENCIDO";
+            } else if (item.category === "A_VENCER") {
+              badgeCor = "#fef3c7; color:#b45309";
+              badgeTxt = "A VENCER";
+            }
+
+            var procInfo = "<span style='color:#dc2626; font-weight:600;'>Sem processo</span>";
+            if (item.matchedProcess) {
+              procInfo = "<span style='color:#0284c7; font-weight:700;'>Proc. " + item.matchedProcess.processo + "</span><br><small style='color:#64748b;'>" + item.matchedProcess.situacao + "</small>";
+            }
+
+            return "<tr style='border-bottom:1px solid #f1f5f9;'>" +
+              "<td style='padding:8px 10px; font-weight:600;'>" + item.municipio + "<br><small style='color:#64748b;'>" + item.escola + "</small></td>" +
+              "<td style='padding:8px 10px; font-weight:700; color:#1e293b;'>" + item.curso + "</td>" +
+              "<td style='padding:8px 10px; font-family:monospace;'>" + (item.validade || "—") + "</td>" +
+              "<td style='padding:8px 10px; text-align:center;'><span style='background:" + badgeCor + "; padding:2px 8px; border-radius:4px; font-weight:700; font-size:10px;'>" + badgeTxt + "</span></td>" +
+              "<td style='padding:8px 10px;'>" + procInfo + "</td>" +
+            "</tr>";
+          }).join("");
+        }
+      }
+    }
+
+    function exportarResultadoBuscaIa() {
+      if (!ultimosResultadosIa || ultimosResultadosIa.length === 0) return;
+      var csv = "\uFEFFMunicipio;Escola;Curso;Ato;Documento;Validade;Situacao;Processo_SIPE;Situacao_Processo\n";
+      ultimosResultadosIa.forEach(function(item) {
+        var procNum = item.matchedProcess ? item.matchedProcess.processo : "SEM PROCESSO";
+        var procSit = item.matchedProcess ? item.matchedProcess.situacao : "—";
+        csv += '"' + (item.municipio || '') + '";"' + (item.escola || '') + '";"' + (item.curso || '') + '";"' + (item.ato || '') + '";"' + (item.doc || '') + '";"' + (item.validade || '') + '";"' + item.category + '";"' + procNum + '";"' + procSit + '"\n';
+      });
+
+      var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "Resultado_Busca_Inteligente_SIPE_Flow.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
 // 📄 COMPILADOR ANALÍTICO DO RELATÓRIO EXECUTIVO (A4 ALINHADO E COM DISPARO AUTOMÁTICO)
