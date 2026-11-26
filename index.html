@@ -3967,7 +3967,7 @@ function exportFilteredCsv() {
   </div>
 
   <script>
-    // 🔒 LIBERAÇÃO DO BOTÃO APENAS PARA ADMINISTRADORES
+    // 🔒 LIBERAÇÃO DOS BOTÕES APENAS PARA ADMINISTRADORES
     function verificarAcessoAdminRelatorio() {
       var params = new URLSearchParams(window.location.search);
       if (params.get("role") === "admin" || params.get("admin") === "true") {
@@ -3980,12 +3980,13 @@ function exportFilteredCsv() {
           btnBusca.style.display = "inline-flex";
         }
       }
+    }
+
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", verificarAcessoAdminRelatorio);
     } else {
       verificarAcessoAdminRelatorio();
     }
-
     function popularDropdownEscolasRelatorio() {
       var sel = document.getElementById("relatorio-escola-select");
       if (!sel || sel.options.length > 1) return;
