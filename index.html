@@ -1064,6 +1064,14 @@
             </svg>
             Relatório Executivo
           </button>
+          <!-- BOTÃO BUSCA INTELIGENTE IA (EXCLUSIVO ADMIN) -->
+          <button type="button" id="btn-busca-inteligente" class="btn" style="display:none; background: linear-gradient(135deg, #581c87, #1e1b4b); color: #ffffff; border: 1px solid #a855f7; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.25); margin-left: 6px;" onclick="abrirModalBuscaInteligente()" title="Acesso Restrito: Consulta Avançada em Linguagem Natural (Ctrl+K)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:6px;" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Busca IA
+          </button>
         </div>
       </div>
     </div>
@@ -3964,9 +3972,14 @@ function exportFilteredCsv() {
       var params = new URLSearchParams(window.location.search);
       if (params.get("role") === "admin" || params.get("admin") === "true") {
         var btnExec = document.getElementById("btn-relatorio-executivo");
-        if (btnExec) btnExec.style.display = "inline-flex";
+        if (btnExec) {
+          btnExec.style.display = "inline-flex";
+        }
+        var btnBusca = document.getElementById("btn-busca-inteligente");
+        if (btnBusca) {
+          btnBusca.style.display = "inline-flex";
+        }
       }
-    }
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", verificarAcessoAdminRelatorio);
     } else {
