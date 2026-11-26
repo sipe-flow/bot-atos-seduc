@@ -4178,189 +4178,129 @@ function exportFilteredCsv() {
       }
     }
 
- function executarBuscaInteligente() {
+async function executarBuscaInteligente() {
       var inputEl = document.getElementById("input-busca-ia");
       if (!inputEl) return;
       var query = inputEl.value.trim();
       if (!query) return;
 
-      var qNorm = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-
-      // Carrega a base auditada atual (com a trava dos 381 cursos)
-      var atosTrabalho = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
-
-      // Datas de referência
-      var hojeReal = new Date();
-      var dataRef = (typeof REFERENCE_DATE !== "undefined") ? REFERENCE_DATE : hojeReal;
-
-      // 1. RECONHECIMENTO TEMPORAL EXATO
-      var querHoje = qNorm.includes("HOJE") || qNorm.includes("DIA DE HOJE") || qNorm.includes("NESTA DATA");
-      var querMes = qNorm.includes("ESTE MES") || qNorm.includes("NESSE MES") || qNorm.includes("MES ATUAL") || qNorm.includes("30 DIAS");
-      var quer180 = qNorm.includes("180 DIAS") || qNorm.includes("6 MESES") || qNorm.includes("SEIS MESES");
-      var quer1Ano = qNorm.includes("1 ANO") || qNorm.includes("UM ANO") || qNorm.includes("12 MESES") || qNorm.includes("DOZE MESES");
-
-      // 2. RECONHECIMENTO DE SITUAÇÃO REGULATÓRIA (Reconhece: venceu, venceram, vence, vencimento, vencidos)
-      var querVencidos = (qNorm.includes("VENC") && !qNorm.includes("A VENCER")) || qNorm.includes("EXPIR") || qNorm.includes("PASSIV") || qNorm.includes("ATRASAD");
-      var querAVencer = qNorm.includes("A VENCER") || qNorm.includes("VAO VENCER") || qNorm.includes("VAI VENCER") || qNorm.includes("VENCENDO") || qNorm.includes("PROXIM") || quer180 || quer1Ano;
-      var querVigentes = qNorm.includes("VIGENT") || qNorm.includes("REGULAR") || qNorm.includes("VALID") || qNorm.includes("EM DIA");
-
-      // 3. RECONHECIMENTO DE PROCESSO SIPE
-      var querSemProcesso = qNorm.includes("SEM PROCESSO") || qNorm.includes("DESCOBERT") || qNorm.includes("SEM PROTOCOLO") || qNorm.includes("NAO FISCALIZAD");
-      var querComProcesso = qNorm.includes("COM PROCESSO") || qNorm.includes("COBERT") || qNorm.includes("EM REGULARIZACAO") || qNorm.includes("PROTOCOLAD");
-
-      // 4. RECONHECIMENTO DE CIDADE / UNIDADE ETEC
-      var cidadeFiltro = "";
-      if (typeof ETECS_MASTER !== "undefined") {
-        for (var i = 0; i < ETECS_MASTER.length; i++) {
-          var cidNorm = ETECS_MASTER[i].cidade.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-          if (qNorm.includes(cidNorm)) {
-            cidadeFiltro = cidNorm;
-            break;
-          }
+      var apiKey = localStorage.getItem("GEMINI_API_KEY") || "";
+      if (!apiKey) {
+        apiKey = prompt("🔒 Digite ou cole a sua chave de API do Gemini para ativar a Busca IA (ela ficará salva somente no seu navegador):");
+        if (apiKey && apiKey.trim()) {
+          apiKey = apiKey.trim();
+          localStorage.setItem("GEMINI_API_KEY", apiKey);
+        } else {
+          alert("A consulta requer uma chave de API para processar a busca inteligente.");
+          return;
         }
       }
 
-      // 5. RECONHECIMENTO DE CURSOS
-      var cursoFiltro = "";
-      var cursosLista = ["ENFERMAGEM", "AGROPECUARIA", "SEGURANCA DO TRABALHO", "ADMINISTRACAO", "LOGISTICA", "INFORMATICA", "DESENVOLVIMENTO DE SISTEMAS", "EDIFICACOES", "RECURSOS HUMANOS", "ELETROTECNICA", "AGRICULTURA", "AGRONEGOCIO", "QUIMICA", "MEIO AMBIENTE"];
-      for (var c = 0; c < cursosLista.length; c++) {
-        if (qNorm.includes(cursosLista[c])) {
-          cursoFiltro = cursosLista[c];
-          break;
-        }
-      }
-
-      // Se nenhum critério for identificado, evita retornar a base toda
-      var temCriterio = querHoje || querMes || quer180 || quer1Ano || querVencidos || querAVencer || querVigentes || querSemProcesso || querComProcesso || cidadeFiltro || cursoFiltro;
-
-      var filtrados = [];
-      if (temCriterio) {
-        filtrados = atosTrabalho.filter(function(item) {
-          var munItem = (item.municipio || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-          var escItem = (item.escola || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-          var curItem = (item.curso || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-
-          // Filtro Cidade
-          if (cidadeFiltro && !munItem.includes(cidadeFiltro) && !escItem.includes(cidadeFiltro)) {
-            return false;
-          }
-
-          // Filtro Curso
-          if (cursoFiltro && !curItem.includes(cursoFiltro)) {
-            return false;
-          }
-
-          // FILTRO: VENCIMENTO HOJE
-          if (querHoje) {
-            if (!item.endDate) return false;
-            var eD = item.endDate.getDate();
-            var eM = item.endDate.getMonth();
-            var eY = item.endDate.getFullYear();
-            var matchHoje = (eD === hojeReal.getDate() && eM === hojeReal.getMonth() && eY === hojeReal.getFullYear()) ||
-                            (eD === dataRef.getDate() && eM === dataRef.getMonth() && eY === dataRef.getFullYear());
-            if (!matchHoje) return false;
-          }
-
-          // FILTRO: ESTE MÊS
-          if (querMes && !querHoje) {
-            if (!item.endDate) return false;
-            var matchMes = (item.endDate.getMonth() === hojeReal.getMonth() && item.endDate.getFullYear() === hojeReal.getFullYear()) ||
-                           (item.endDate.getMonth() === dataRef.getMonth() && item.endDate.getFullYear() === dataRef.getFullYear());
-            if (!matchMes) return false;
-          }
-
-          // FILTRO: A VENCER EM 1 ANO / 180 DIAS
-          if (quer1Ano && (item.daysRemaining === null || item.daysRemaining < 0 || item.daysRemaining > 365)) {
-            return false;
-          }
-          if (quer180 && (item.daysRemaining === null || item.daysRemaining < 0 || item.daysRemaining > 180)) {
-            return false;
-          }
-
-          // FILTROS GERAIS
-          if (querVencidos && !querHoje && item.category !== "VENCIDO_DESCOBERTO" && item.category !== "VENCIDO_COBERTO") {
-            return false;
-          }
-          if (querVigentes && item.category !== "VIGENTE") {
-            return false;
-          }
-          if (querAVencer && !quer1Ano && !quer180 && item.category !== "A_VENCER") {
-            return false;
-          }
-
-          // FILTRO SIPE
-          if (querSemProcesso && item.matchedProcess !== null) {
-            return false;
-          }
-          if (querComProcesso && item.matchedProcess === null) {
-            return false;
-          }
-
-          return true;
-        });
-      }
-
-      ultimosResultadosIa = filtrados;
-
-      // Atualização dos elementos na tela
       var divResultado = document.getElementById("resultado-busca-ia");
       var resumoEl = document.getElementById("resumo-ia-texto");
       var tbody = document.getElementById("tbody-resultado-ia");
       var btnExportar = document.getElementById("btn-exportar-busca-ia");
 
       if (divResultado) divResultado.style.display = "block";
-      if (btnExportar) btnExportar.style.display = filtrados.length > 0 ? "inline-block" : "none";
+      if (btnExportar) btnExportar.style.display = "none";
+      if (resumoEl) resumoEl.innerHTML = "⏳ <strong>Consultando o Gemini...</strong> Analisando a pergunta e cruzando com os cursos das 17 ETECs...";
+      if (tbody) tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:24px; color:#64748b;'>Processando raciocínio com Inteligência Artificial...</td></tr>";
 
-      var textoResumo = "";
-      if (!temCriterio) {
-        textoResumo = "ℹ️ <strong>Critério não identificado:</strong> Tente termos como <em>'Cursos vencidos em Cuiabá'</em>, <em>'Enfermagem a vencer em 12 meses'</em> ou <em>'Passivo sem processo no SIPE'</em>.";
-      } else if (filtrados.length === 0) {
-        textoResumo = "🔍 <strong>Diagnóstico da Consulta:</strong> <strong>0 cursos encontrados</strong> para os critérios informados.";
-        if (querHoje) textoResumo += " <strong>Nenhum ato regulatório vence na data de hoje.</strong>";
-        if (cidadeFiltro) textoResumo += " Unidade: <strong>" + cidadeFiltro + "</strong>.";
-        if (cursoFiltro) textoResumo += " Curso: <strong>" + cursoFiltro + "</strong>.";
-      } else {
-        textoResumo = "🔍 <strong>Diagnóstico da Consulta:</strong> Foram localizados <strong>" + filtrados.length + " curso(s)</strong> correspondente(s) à sua busca.";
-        if (cidadeFiltro) textoResumo += " Município: <strong>" + cidadeFiltro + "</strong>.";
-        if (cursoFiltro) textoResumo += " Curso: <strong>TÉCNICO EM " + cursoFiltro + "</strong>.";
-        if (querHoje) textoResumo += " Vencimento: <strong>Exatamente Hoje</strong>.";
-        else if (quer1Ano) textoResumo += " Vencimento: <strong>Próximos 12 meses</strong>.";
-        else if (querVencidos) textoResumo += " Status: <strong>Atos Vencidos / Passivo</strong>.";
-        else if (querAVencer) textoResumo += " Status: <strong>A Vencer (Régua Preventiva)</strong>.";
-        if (querSemProcesso) textoResumo += " SIPE: <span style='color:#dc2626; font-weight:700;'>Passivo Descoberto (sem processo autuado)</span>.";
-      }
+      var atosTrabalho = classifyAtos(appState.atos, appState.processos, appState.horizonDays);
+      var dadosParaIa = atosTrabalho.map(function(a, idx) {
+        return {
+          id: idx,
+          m: a.municipio,
+          e: a.escola,
+          c: a.curso,
+          val: a.validade,
+          cat: a.category,
+          dias: a.daysRemaining,
+          proc: a.matchedProcess ? a.matchedProcess.processo : null
+        };
+      });
 
-      if (resumoEl) resumoEl.innerHTML = textoResumo;
+      var promptInstrucao = 
+        "Você é o auditor regulatório de inteligência do SIPE Flow MT da SECITECI/MT.\n" +
+        "Hoje é exatamente 26/11/2026 (Quinta-feira).\n" +
+        "Sua tarefa é analisar a pergunta do gestor e retornar os IDs dos cursos correspondentes e uma explicação executiva.\n\n" +
+        "Pergunta do gestor: \"" + query + "\"\n\n" +
+        "Base de dados dos cursos:\n" +
+        JSON.stringify(dadosParaIa) + "\n\n" +
+        "Responda ESTRITAMENTE em formato JSON puro (sem markdown, sem crases ```json), com esta estrutura:\n" +
+        "{\n" +
+        '  "resumo": "Diagnóstico claro em 1 a 2 frases para o gestor",\n' +
+        '  "ids_encontrados": [0, 1, 2]\n' +
+        "}";
 
-      // Montagem da tabela
-      if (tbody) {
-        if (filtrados.length === 0) {
-          tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:18px; color:#64748b;'>Nenhum registro encontrado para esses parâmetros. Todos os atos com este perfil estão com situação regular ou em outras faixas temporais.</td></tr>";
-        } else {
-          tbody.innerHTML = filtrados.map(function(item) {
-            var badgeCor = "#dcfce7; color:#15803d";
-            var badgeTxt = "VIGENTE";
-            if (item.category === "VENCIDO_DESCOBERTO" || item.category === "VENCIDO_COBERTO") {
-              badgeCor = "#fee2e2; color:#b91c1c";
-              badgeTxt = "VENCIDO";
-            } else if (item.category === "A_VENCER") {
-              badgeCor = "#fef3c7; color:#b45309";
-              badgeTxt = "A VENCER";
-            }
+      try {
+        var response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptInstrucao }] }],
+            generationConfig: { temperature: 0.1 }
+          })
+        });
 
-            var procInfo = "<span style='color:#dc2626; font-weight:600;'>Sem processo</span>";
-            if (item.matchedProcess) {
-              procInfo = "<span style='color:#0284c7; font-weight:700;'>Proc. " + item.matchedProcess.processo + "</span><br><small style='color:#64748b;'>" + item.matchedProcess.situacao + "</small>";
-            }
+        if (!response.ok) {
+          throw new Error("Erro na comunicação com a API (" + response.status + ")");
+        }
 
-            return "<tr style='border-bottom:1px solid #f1f5f9;'>" +
-              "<td style='padding:8px 10px; font-weight:600;'>" + item.municipio + "<br><small style='color:#64748b;'>" + item.escola + "</small></td>" +
-              "<td style='padding:8px 10px; font-weight:700; color:#1e293b;'>" + item.curso + "</td>" +
-              "<td style='padding:8px 10px; font-family:monospace;'>" + (item.validade || "—") + "</td>" +
-              "<td style='padding:8px 10px; text-align:center;'><span style='background:" + badgeCor + "; padding:2px 8px; border-radius:4px; font-weight:700; font-size:10px;'>" + badgeTxt + "</span></td>" +
-              "<td style='padding:8px 10px;'>" + procInfo + "</td>" +
-            "</tr>";
-          }).join("");
+        var jsonResp = await response.json();
+        var textoGerado = jsonResp.candidates[0].content.parts[0].text.trim();
+        textoGerado = textoGerado.replace(/```json/g, "").replace(/```/g, "").trim();
+        var respostaIa = JSON.parse(textoGerado);
+
+        var ids = respostaIa.ids_encontrados || [];
+        var filtrados = ids.map(function(id) { return atosTrabalho[id]; }).filter(Boolean);
+        ultimosResultadosIa = filtrados;
+
+        if (resumoEl) {
+          resumoEl.innerHTML = "✨ <strong>Parecer IA Gemini:</strong> " + respostaIa.resumo + " (<strong>" + filtrados.length + " curso(s)</strong> localizado(s)).";
+        }
+        if (btnExportar) {
+          btnExportar.style.display = filtrados.length > 0 ? "inline-block" : "none";
+        }
+
+        if (tbody) {
+          if (filtrados.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:18px; color:#64748b;'>Nenhum registro corresponde aos critérios analisados pela IA.</td></tr>";
+          } else {
+            tbody.innerHTML = filtrados.map(function(item) {
+              var badgeCor = "#dcfce7; color:#15803d";
+              var badgeTxt = "VIGENTE";
+              if (item.category === "VENCIDO_DESCOBERTO" || item.category === "VENCIDO_COBERTO") {
+                badgeCor = "#fee2e2; color:#b91c1c";
+                badgeTxt = "VENCIDO";
+              } else if (item.category === "A_VENCER") {
+                badgeCor = "#fef3c7; color:#b45309";
+                badgeTxt = "A VENCER";
+              }
+
+              var procInfo = "<span style='color:#dc2626; font-weight:600;'>Sem processo</span>";
+              if (item.matchedProcess) {
+                procInfo = "<span style='color:#0284c7; font-weight:700;'>Proc. " + item.matchedProcess.processo + "</span><br><small style='color:#64748b;'>" + item.matchedProcess.situacao + "</small>";
+              }
+
+              return "<tr style='border-bottom:1px solid #f1f5f9;'>" +
+                "<td style='padding:8px 10px; font-weight:600;'>" + item.municipio + "<br><small style='color:#64748b;'>" + item.escola + "</small></td>" +
+                "<td style='padding:8px 10px; font-weight:700; color:#1e293b;'>" + item.curso + "</td>" +
+                "<td style='padding:8px 10px; font-family:monospace;'>" + (item.validade || "—") + "</td>" +
+                "<td style='padding:8px 10px; text-align:center;'><span style='background:" + badgeCor + "; padding:2px 8px; border-radius:4px; font-weight:700; font-size:10px;'>" + badgeTxt + "</span></td>" +
+                "<td style='padding:8px 10px;'>" + procInfo + "</td>" +
+              "</tr>";
+            }).join("");
+          }
+        }
+
+      } catch (err) {
+        console.error("Erro na consulta IA:", err);
+        if (resumoEl) {
+          resumoEl.innerHTML = "❌ <strong>Erro ao consultar IA:</strong> " + err.message + ". Verifique sua chave da API ou conexão.";
+        }
+        if (tbody) {
+          tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:18px; color:#ef4444;'>Não foi possível concluir a consulta com o Gemini.</td></tr>";
         }
       }
     }
