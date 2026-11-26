@@ -1899,7 +1899,8 @@ async function carregarDadosPlanilhaOnline() {
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
           window.lucide.createIcons();
         }
-        alert('✅ Sincronização concluída com sucesso!\n' + totalAtos + ' cursos regulatórios atualizados diretamente da Planilha Google.');
+       const totalAuditados = classifyAtos(appState.atos, appState.processos, appState.horizonDays).length;
+        alert('✅ Sincronização concluída com sucesso!\n' + totalAuditados + ' cursos regulatórios monitorados e validados diretamente da Planilha Google.');
       } else {
         alert('⚠️ Não foi possível sincronizar com a planilha online no momento. Mantendo base referencial.');
         renderAll();
