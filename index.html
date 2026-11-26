@@ -4023,8 +4023,9 @@ function exportFilteredCsv() {
         subTituloEscopo = "Unidade Escolar: " + etecInfo.nomeCompleto + " · Código CEE/MT: " + etecInfo.cod;
       }
 
-      var secao3Conteudo = "";
-      var etecsCriticas = summaries.filter(function(s) { return s.risk === "VERMELHO" || s.risk === "AMARELO"; });
+ var secao3Conteudo = "";
+      if (escolaEscolhida === "TODAS") {
+        var etecsCriticas = summaries.filter(function(s) { return s.risk === "VERMELHO" || s.risk === "AMARELO"; });
         var linhasCriticas = etecsCriticas.map(function(e) {
           var corTag = e.risk === "VERMELHO" ? "#fee2e2; color:#b91c1c" : "#fef3c7; color:#b45309";
           var rotuloTag = e.risk === "VERMELHO" ? "CRÍTICO" : "ATENÇÃO";
@@ -4061,7 +4062,6 @@ function exportFilteredCsv() {
             badgeTexto = "PRÓXIMO VENCIMENTO";
           }
 
-          // 📅 CÁLCULO EXATO DO PRAZO LIMITE (1 ANO DE ANTECEDÊNCIA)
           var prazoTexto = "—";
           var endDate = c.endDate;
           if (!endDate && c.validade) {
@@ -4107,7 +4107,7 @@ function exportFilteredCsv() {
 
         secao3Conteudo = "<h2>3. Relação Nominal dos Cursos Técnicos da Unidade</h2>" +
           "<table>" +
-            "<thead><tr><th>Curso Técnico</th><th>Ato Regulatório</th><th style='text-align:center;'>Validade</th><th style='text-align:center;'>Status</th><th style='text-align:center;'>Prazo Limite Protocolo</th></tr></thead>" +
+            "<thead><tr><th>Curso Técnico</th><th>Ato Regulatório</th><th style='text-align:center;'>Validade</th><th style='text-align:center;'>Status</th><th style='text-align:center;'>Prazo Limite Protocolo (1 ano antes)</th></tr></thead>" +
             "<tbody>" + linhasCursos + "</tbody>" +
           "</table>";
       }
