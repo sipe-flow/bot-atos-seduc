@@ -3026,7 +3026,7 @@ function renderKpis(allSummaries, filteredSummaries, filteredAtos, filteredProce
              <td>
               <div style="display:flex;flex-direction:column;gap:4px;">
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="openOfficialNotice('${safeKey}')">Minuta Ofício</button>
+                  ${(new URLSearchParams(window.location.search).get('role') === 'admin' || new URLSearchParams(window.location.search).get('admin') === 'true') ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openOfficialNotice('${safeKey}')">Minuta Ofício</button>` : ``}
                   <a href="http://sigeduca.seduc.mt.gov.br/cee/wceelogin.aspx" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">Abrir SIPE</a>
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="downloadWordRequerimento('${safeKey}')" style="display:inline-flex;align-items:center;justify-content:center;gap:4px;font-weight:600;padding:4px 8px;">
@@ -3288,6 +3288,9 @@ ${corpoTexto}
     }
 
     function openOfficialNotice(encodedKey) {
+      const isAdmin = new URLSearchParams(window.location.search).get('role') === 'admin' || new URLSearchParams(window.location.search).get('admin') === 'true';
+      if (!isAdmin) return;
+
       const ato = findAtoByKey(encodedKey);
       if (!ato) return;
       currentNoticeRecord = ato;
