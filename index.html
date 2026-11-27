@@ -1009,6 +1009,126 @@
       flex-shrink: 0 !important;
     }
 
+    .btn-header-brass svg {
+         width: 16px !important;
+         height: 16px !important;
+         flex-shrink: 0 !important;
+       }
+
+    /* =========================================================================
+       ACESSIBILIDADE OFICIAL - PADRÃO SECITECI / GOVERNO DE MT
+       ========================================================================= */
+    .header-acessibilidade-bar {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 0.45rem !important;
+      margin-bottom: 0.15rem !important;
+    }
+
+    .acessibilidade-label {
+      font-size: 0.68rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.06em !important;
+      color: rgba(255, 255, 255, 0.9) !important;
+      margin-right: 0.15rem !important;
+      user-select: none !important;
+    }
+
+    .btn-acess {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: transparent !important;
+      border: 1px solid rgba(255, 255, 255, 0.18) !important;
+      border-radius: 4px !important;
+      padding: 2px 5px !important;
+      min-width: 24px !important;
+      height: 22px !important;
+      cursor: pointer !important;
+      line-height: 1 !important;
+      transition: all 0.15s ease !important;
+    }
+
+    .btn-acess:hover {
+      background: rgba(255, 255, 255, 0.15) !important;
+      border-color: rgba(255, 255, 255, 0.4) !important;
+    }
+
+    .simbolo-sinal {
+      font-size: 0.75rem !important;
+      font-weight: 900 !important;
+      color: #38bdf8 !important; /* Azul ciano da Seciteci */
+      margin-right: 1px !important;
+    }
+
+    .letra-a {
+      font-size: 0.78rem !important;
+      font-weight: 800 !important;
+      font-family: serif, 'Times New Roman' !important;
+      color: #ffffff !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    .letra-pequena {
+      font-size: 0.7rem !important;
+      font-weight: 700 !important;
+      color: #94a3b8 !important;
+    }
+
+    .letra-grande {
+      font-size: 0.82rem !important;
+      font-weight: 800 !important;
+      color: #cbd5e1 !important;
+    }
+
+    .svg-contraste {
+      width: 14px !important;
+      height: 14px !important;
+      color: #ffffff !important;
+      display: block !important;
+    }
+
+    /* MODO ALTO CONTRASTE (FUNDO PRETO / TEXTOS BRANCOS E AMARELOS - e-MAG) */
+    body.modo-alto-contraste {
+      background: #000000 !important;
+      color: #ffffff !important;
+    }
+
+    body.modo-alto-contraste .title-band,
+    body.modo-alto-contraste .panel,
+    body.modo-alto-contraste .card,
+    body.modo-alto-contraste .table-wrap,
+    body.modo-alto-contraste .metric-card,
+    body.modo-alto-contraste .drawer-content {
+      background: #0d0d0d !important;
+      border: 1px solid #facc15 !important;
+      color: #ffffff !important;
+    }
+
+    body.modo-alto-contraste h1,
+    body.modo-alto-contraste h2,
+    body.modo-alto-contraste h3,
+    body.modo-alto-contraste strong {
+      color: #facc15 !important;
+    }
+
+    body.modo-alto-contraste p,
+    body.modo-alto-contraste span,
+    body.modo-alto-contraste td,
+    body.modo-alto-contraste th {
+      color: #ffffff !important;
+    }
+
+    body.modo-alto-contraste .header-meta-strip {
+      background: #000000 !important;
+      border: 1px solid #facc15 !important;
+    }
+
+    body.modo-alto-contraste table tr:hover td {
+      background: #1a1a1a !important;
+    }
+
+  </style>
   </style>
 </head>
 <body>
@@ -1027,6 +1147,33 @@
         <h1 class="header-main-title">MONITORAMENTO REGULATÓRIO DAS 17 ETEC<span style="text-transform:lowercase !important;">'s</span></h1>
       </div>
       <div class="header-meta-actions">
+      <!-- BARRA OFICIAL DE ACESSIBILIDADE (PADRÃO SECITECI / GOV-MT) -->
+        <div class="header-acessibilidade-bar" role="region" aria-label="Acessibilidade">
+          <span class="acessibilidade-label">ACESSIBILIDADE :</span>
+          
+          <!-- Diminuir Fonte (-A) -->
+          <button type="button" class="btn-acess" onclick="ajustarFonte(-1)" title="Diminuir fonte (-A)" aria-label="Diminuir fonte">
+            <span class="simbolo-sinal">-</span><span class="letra-a">A</span>
+          </button>
+
+          <!-- Aumentar Fonte (+A) -->
+          <button type="button" class="btn-acess" onclick="ajustarFonte(1)" title="Aumentar fonte (+A)" aria-label="Aumentar fonte">
+            <span class="simbolo-sinal">+</span><span class="letra-a">A</span>
+          </button>
+
+          <!-- Tamanho Neutro (aA) -->
+          <button type="button" class="btn-acess btn-neutro" onclick="ajustarFonte(0)" title="Tamanho neutro / padrão (aA)" aria-label="Tamanho neutro">
+            <span class="letra-pequena">a</span><span class="letra-grande">A</span>
+          </button>
+
+          <!-- Alto Contraste (Ícone Circular ◐) -->
+          <button type="button" class="btn-acess btn-contraste" onclick="alternarContraste()" title="Alto Contraste" aria-label="Alternar Alto Contraste">
+            <svg viewBox="0 0 24 24" class="svg-contraste" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/>
+              <path d="M12 2 A10 10 0 0 0 12 22 Z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
         <div class="header-meta-strip">
           <span>DATA-BASE: <strong id="data-base-val">20/11/2026</strong></span>
           <span id="data-source-badge">FONTE: <strong>SIGEDUCA / CEE-MT</strong> (397 ATOS · 795 PROCESSOS SIPE)</span>
@@ -4572,6 +4719,52 @@ function exportFilteredCsv() {
         janelaImpressao.print();
       }, 400);
     }
-  </script>
-</body>
+
+          document.addEventListener(`DOMContentLoaded`, initApp);
+
+      // =========================================================================
+      // FUNÇÕES DE ACESSIBILIDADE OFICIAL (FONTE + ALTO CONTRASTE - SECITECI)
+      // =========================================================================
+      var escalaFonteAtual = 100;
+
+      function ajustarFonte(direcao) {
+        if (direcao === 0) {
+          escalaFonteAtual = 100;
+        } else if (direcao === 1) {
+          if (escalaFonteAtual < 130) escalaFonteAtual += 10;
+        } else if (direcao === -1) {
+          if (escalaFonteAtual > 80) escalaFonteAtual -= 10;
+        }
+        document.documentElement.style.fontSize = (escalaFonteAtual / 100 * 14) + "px";
+        try {
+          localStorage.setItem("sipe_escala_fonte", escalaFonteAtual);
+        } catch(e) {}
+      }
+
+      function alternarContraste() {
+        document.body.classList.toggle("modo-alto-contraste");
+        var ativo = document.body.classList.contains("modo-alto-contraste");
+        try {
+          localStorage.setItem("sipe_alto_contraste", ativo ? "1" : "0");
+        } catch(e) {}
+      }
+
+      // Carregar preferências salvas do usuário ao abrir a página
+      (function restaurarAcessibilidade() {
+        try {
+          var fSalva = localStorage.getItem("sipe_escala_fonte");
+          if (fSalva) {
+            escalaFonteAtual = parseInt(fSalva, 10) || 100;
+            if (escalaFonteAtual !== 100) {
+              document.documentElement.style.fontSize = (escalaFonteAtual / 100 * 14) + "px";
+            }
+          }
+          var cSalvo = localStorage.getItem("sipe_alto_contraste");
+          if (cSalvo === "1") {
+            document.body.classList.add("modo-alto-contraste");
+          }
+        } catch(e) {}
+      })();
+    </script>
+  </body>
 </html>
